@@ -49,7 +49,7 @@
 .card--flush .table { min-width: 640px; }
 .table__product { display: flex; align-items: center; gap: 12px; }
 .table__product > div { display: flex; flex-direction: column; }
-.table__thumb { width: 44px; height: 44px; border-radius: var(--r-sm); background: #f0f1f7; overflow: hidden; flex: none; display: grid; place-items: center; }
+.table__thumb { width: 44px; height: 44px; border-radius: var(--r-sm); background: #fff; border: 1px solid var(--line); overflow: hidden; flex: none; display: grid; place-items: center; }
 .table__thumb img, .table__thumb .img-placeholder { width: 100%; height: 100%; object-fit: contain; }
 .table__thumb .img-placeholder svg { width: 20px; }
 .table__thumb .cat__initial { font-size: 1.1rem; }
@@ -90,7 +90,7 @@
 
 .uploader { display: flex; flex-wrap: wrap; gap: 10px; }
 .uploader__item, .uploader__add { width: 92px; height: 92px; border-radius: var(--r-md); position: relative; }
-.uploader__item { border: 1px solid var(--line); overflow: hidden; background: #f0f1f7; }
+.uploader__item { border: 1px solid var(--line); overflow: hidden; background: #fff; }
 .uploader__item img { width: 100%; height: 100%; object-fit: cover; }
 .uploader__item button { position: absolute; top: 4px; right: 4px; width: 22px; height: 22px; border-radius: 50%; border: 0; background: rgba(21, 25, 51, 0.75); color: #fff; display: grid; place-items: center; }
 .uploader__add { border: 1.5px dashed #b9bed6; background: var(--paper); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; color: var(--muted); font-size: 0.82rem; font-weight: 600; }
