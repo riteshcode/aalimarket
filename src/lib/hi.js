@@ -303,6 +303,23 @@ const HI = {
   'Confirm delivery': 'डिलीवरी पक्की करें',
   'Delivered! Great job.': 'डिलीवर हो गया! शाबाश।',
   'Wrong OTP. {n} tries left.': 'गलत OTP। {n} बार और कोशिश कर सकते हैं।',
+
+  // App-open prompts
+  'Opens instantly from your home screen': 'होम स्क्रीन से तुरंत खुलेगा',
+  'Works smoothly on slow internet': 'धीमे इंटरनेट पर भी आराम से चलेगा',
+  'Live updates on your orders': 'ऑर्डर की लाइव जानकारी',
+  'Install app': 'ऐप इंस्टॉल करें',
+  'at the bottom of Safari': 'Safari में नीचे',
+  Choose: 'चुनें',
+  'Not now': 'अभी नहीं',
+  'Get order updates': 'ऑर्डर की जानकारी पाएँ',
+  'We’ll tell you when your order is packed, out for delivery and delivered. No spam.': 'ऑर्डर पैक होने, डिलीवरी के लिए निकलने और पहुँचने पर हम बताएँगे। कोई फ़ालतू मैसेज नहीं।',
+  'Allow notifications': 'नोटिफ़िकेशन चालू करें',
+
+  // Active order bar
+  '{n} orders on the way': '{n} ऑर्डर आ रहे हैं',
+  'Tap to track': 'ट्रैक करने के लिए दबाएँ',
+  Track: 'ट्रैक करें',
 };
 
 export default HI;

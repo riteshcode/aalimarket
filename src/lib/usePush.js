@@ -9,6 +9,9 @@ function base64UrlToBytes(base64Url) {
   return Uint8Array.from(raw, (char) => char.charCodeAt(0));
 }
 
+const OPT_OUT_KEY = 'aali.push.optOut';
+export const hasOptedOut = () => localStorage.getItem(OPT_OUT_KEY) === '1';
+
 const isSupported = () => 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
 
 /**
@@ -42,6 +45,7 @@ export function usePush() {
         (await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: base64UrlToBytes(data.publicKey) }));
 
       await pushApi.subscribe(sub.toJSON());
+      localStorage.removeItem(OPT_OUT_KEY);
       setSubscribed(true);
     } finally {
       setBusy(false);
@@ -57,6 +61,7 @@ export function usePush() {
         await pushApi.unsubscribe(sub.endpoint).catch(() => {});
         await sub.unsubscribe();
       }
+      localStorage.setItem(OPT_OUT_KEY, '1');
       setSubscribed(false);
     } finally {
       setBusy(false);

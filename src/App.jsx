@@ -8,7 +8,8 @@ import { ShopProvider, useShop } from './context/ShopContext';
 import Header from './components/Header';
 import BottomNav from './components/BottomNav';
 import Footer from './components/Footer';
-import InstallBanner from './components/InstallBanner';
+import AppPrompts from './components/AppPrompts';
+import ActiveOrderBar from './components/ActiveOrderBar';
 import RequireAuth from './components/RequireAuth';
 import ErrorBoundary from './components/ErrorBoundary';
 import { Spinner } from './components/States';
@@ -83,7 +84,8 @@ function StoreLayout() {
         </ErrorBoundary>
         <Footer />
       </main>
-      <InstallBanner />
+      <ActiveOrderBar />
+      <AppPrompts />
       <BottomNav />
     </div>
   );
