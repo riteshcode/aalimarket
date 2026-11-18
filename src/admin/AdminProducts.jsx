@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Plus, Pencil, Trash2, Search, RotateCcw } from 'lucide-react';
+import { Plus, Pencil, Trash2, Search, RotateCcw, Download, Upload, Zap, X } from 'lucide-react';
 import { adminApi } from '../api/endpoints';
 import { useFetch } from '../lib/useFetch';
 import { useLang } from '../context/LangContext';
@@ -122,6 +122,63 @@ function ProductForm({ product, categories, onSaved, onCancel }) {
   );
 }
 
+// CSV import: check the file first (dry run), then apply
+function ImportForm({ onDone }) {
+  const toast = useToast();
+  const [file, setFile] = useState(null);
+  const [result, setResult] = useState(null);
+  const [busy, setBusy] = useState(false);
+
+  async function run(dryRun) {
+    setBusy(true);
+    try {
+      const { data } = await adminApi.importProducts(file, dryRun);
+      setResult(data);
+      if (!dryRun) {
+        toast.success(`Imported: ${data.created} new, ${data.updated} updated`);
+        onDone();
+      }
+    } catch (err) {
+      toast.error(err.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="stack">
+      <p className="muted small">
+        Tip: use <strong>Export CSV</strong> first, edit it in Excel, then import it back. Prices are in <strong>paise</strong>
+        {' '}(₹249 = 24900). Rows with an <code>id</code> update that product; rows without one create a new product.
+      </p>
+      <input
+        type="file"
+        accept=".csv,text/csv"
+        onChange={(e) => { setFile(e.target.files?.[0] || null); setResult(null); }}
+      />
+
+      {result && (
+        <div className={`card import-result ${result.dryRun ? '' : 'is-done'}`}>
+          <strong>{result.dryRun ? 'Check result (nothing saved yet)' : 'Import finished'}</strong>
+          <p>{result.created} new products, {result.updated} updated, {result.errors.length} rows with problems</p>
+          {result.errors.length > 0 && (
+            <ul className="import-errors">
+              {result.errors.map((e) => <li key={e.row}>Row {e.row}: {e.error}</li>)}
+            </ul>
+          )}
+        </div>
+      )}
+
+      <div className="row-end">
+        <button className="btn btn--ghost" onClick={() => run(true)} disabled={!file || busy}>Check file</button>
+        <button className="btn btn--primary" onClick={() => run(false)} disabled={!file || busy || !result?.dryRun}>
+          {busy ? 'Working…' : result?.errors?.length ? 'Import valid rows' : 'Import'}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function AdminProducts() {
   const { tr } = useLang();
   const toast = useToast();
@@ -129,6 +186,11 @@ export default function AdminProducts() {
   const [q, setQ] = useState('');
   const [search, setSearch] = useState('');
   const [editing, setEditing] = useState(null); // null | 'new' | product
+  const [quickEdit, setQuickEdit] = useState(false);
+  const [changes, setChanges] = useState({}); // { [id]: { price, mrp, stock } } in ₹ / units, as typed
+  const [savingBulk, setSavingBulk] = useState(false);
+  const [bulkFailed, setBulkFailed] = useState([]);
+  const [importing, setImporting] = useState(false);
   const [params, setParams] = useSearchParams();
   const show = params.get('isActive') || '';       // '' = all, 'true', 'false'
   const lowStock = params.get('lowStock') || '';
@@ -159,6 +221,54 @@ export default function AdminProducts() {
   const categoryList = asList(categories.data);
   const pages = products.meta?.pages || 1;
 
+  function editCell(p, key, value) {
+    const id = getId(p);
+    setChanges((all) => ({ ...all, [id]: { ...all[id], [key]: value } }));
+  }
+
+  // Only rows that really changed are sent; money goes as paise
+  async function saveBulk() {
+    const rows = Object.entries(changes)
+      .map(([id, c]) => {
+        const row = { id };
+        if (c.price !== undefined && c.price !== '') row.price = toPaise(c.price);
+        if (c.mrp !== undefined && c.mrp !== '') row.mrp = toPaise(c.mrp);
+        if (c.stock !== undefined && c.stock !== '') row.stock = Number(c.stock);
+        return row;
+      })
+      .filter((row) => Object.keys(row).length > 1);
+    if (!rows.length) return setQuickEdit(false);
+
+    setSavingBulk(true);
+    try {
+      const { data } = await adminApi.bulkUpdateProducts(rows);
+      setBulkFailed(data.failed || []);
+      toast[data.failed?.length ? 'error' : 'success'](
+        `${data.updated} updated${data.failed?.length ? `, ${data.failed.length} failed` : ''}`
+      );
+      // keep failed rows editable, clear the rest
+      const failedIds = new Set((data.failed || []).map((f) => f.id));
+      setChanges((all) => Object.fromEntries(Object.entries(all).filter(([id]) => failedIds.has(id))));
+      if (!failedIds.size) setQuickEdit(false);
+      products.reload();
+    } catch (err) {
+      toast.error(err.message);
+    } finally {
+      setSavingBulk(false);
+    }
+  }
+
+  async function exportCsv() {
+    try {
+      await adminApi.exportProducts();
+    } catch (err) {
+      toast.error(err.message);
+    }
+  }
+
+  const changedCount = Object.keys(changes).length;
+  const failedById = Object.fromEntries(bulkFailed.map((f) => [f.id, f.error]));
+
   async function remove(p) {
     try {
       await adminApi.deleteProduct(getId(p));
@@ -175,8 +285,31 @@ export default function AdminProducts() {
     <div className="admin-page">
       <div className="admin-head">
         <h1 className="admin-title">Products</h1>
-        <button className="btn btn--primary" onClick={() => setEditing('new')}><Plus size={18} /> Add product</button>
+        <div className="head-actions">
+          <button className="btn btn--ghost btn--sm" onClick={exportCsv}><Download size={16} /> Export CSV</button>
+          <button className="btn btn--ghost btn--sm" onClick={() => setImporting(true)}><Upload size={16} /> Import CSV</button>
+          {!quickEdit && (
+            <button className="btn btn--ghost btn--sm" onClick={() => { setQuickEdit(true); setBulkFailed([]); }}>
+              <Zap size={16} /> Quick edit
+            </button>
+          )}
+          <button className="btn btn--primary" onClick={() => setEditing('new')}><Plus size={18} /> Add product</button>
+        </div>
       </div>
+
+      {quickEdit && (
+        <div className="quick-bar">
+          <span>Quick edit: change price, MRP or stock right in the table. {changedCount > 0 && <strong>{changedCount} changed</strong>}</span>
+          <div className="row-end">
+            <button className="btn btn--ghost btn--sm" onClick={() => { setQuickEdit(false); setChanges({}); setBulkFailed([]); }}>
+              <X size={16} /> Cancel
+            </button>
+            <button className="btn btn--primary btn--sm" onClick={saveBulk} disabled={savingBulk || changedCount === 0}>
+              {savingBulk ? 'Saving…' : 'Save changes'}
+            </button>
+          </div>
+        </div>
+      )}
 
       <form className="search search--admin" onSubmit={(e) => { e.preventDefault(); setPage(1); setSearch(q); }}>
         <Search size={18} />
@@ -212,14 +345,31 @@ export default function AdminProducts() {
                     </div>
                   </td>
                   <td>{catName(p.category)}</td>
-                  <td>
-                    <strong>{money(p.price)}</strong>
-                    {p.mrp > p.price && <s className="muted small"> {money(p.mrp)}</s>}
-                  </td>
-                  <td>
-                    <span className={p.stock <= 10 ? 'warn' : ''}>{p.stock}</span>
-                    {!p.isActive && <span className="pill pill--cancelled">Hidden</span>}
-                  </td>
+                  {quickEdit ? (
+                    <>
+                      <td>
+                        <div className="quick-cells">
+                          <label>₹ <input type="number" min="0" step="0.01" aria-label="Price" value={changes[getId(p)]?.price ?? toRupees(p.price)} onChange={(e) => editCell(p, 'price', e.target.value)} /></label>
+                          <label>MRP <input type="number" min="0" step="0.01" aria-label="MRP" value={changes[getId(p)]?.mrp ?? toRupees(p.mrp)} onChange={(e) => editCell(p, 'mrp', e.target.value)} /></label>
+                        </div>
+                        {failedById[getId(p)] && <span className="form-error small">{failedById[getId(p)]}</span>}
+                      </td>
+                      <td>
+                        <input className="quick-stock" type="number" min="0" aria-label="Stock" value={changes[getId(p)]?.stock ?? p.stock} onChange={(e) => editCell(p, 'stock', e.target.value)} />
+                      </td>
+                    </>
+                  ) : (
+                    <>
+                      <td>
+                        <strong>{money(p.price)}</strong>
+                        {p.mrp > p.price && <s className="muted small"> {money(p.mrp)}</s>}
+                      </td>
+                      <td>
+                        <span className={p.stock <= 10 ? 'warn' : ''}>{p.stock}</span>
+                        {!p.isActive && <span className="pill pill--cancelled">Hidden</span>}
+                      </td>
+                    </>
+                  )}
                   <td className="table__actions">
                     <button className="icon-btn icon-btn--sm" onClick={() => setEditing(p)} aria-label="Edit"><Pencil size={16} /></button>
                     {p.isActive ? (
@@ -242,6 +392,12 @@ export default function AdminProducts() {
           <span>Page {page} of {pages}</span>
           <button className="btn btn--ghost btn--sm" disabled={page >= pages} onClick={() => setPage(page + 1)}>Next</button>
         </div>
+      )}
+
+      {importing && (
+        <Drawer title="Import products from CSV" onClose={() => setImporting(false)}>
+          <ImportForm onDone={() => products.reload()} />
+        </Drawer>
       )}
 
       {editing && (

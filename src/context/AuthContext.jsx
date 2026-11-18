@@ -8,12 +8,14 @@ const AuthContext = createContext(null);
 export function AuthProvider({ children }) {
   const [customer, setCustomer] = useState(() => getSession('customer'));
   const [admin, setAdmin] = useState(() => getSession('admin'));
+  const [rider, setRider] = useState(() => getSession('rider'));
 
   // Keep state in sync when the API client refreshes or clears a token
   useEffect(() => {
     const sync = () => {
       setCustomer(getSession('customer'));
       setAdmin(getSession('admin'));
+      setRider(getSession('rider'));
     };
     window.addEventListener('aali:session', sync);
     window.addEventListener('storage', sync);
@@ -53,6 +55,8 @@ export function AuthProvider({ children }) {
     user: customer?.user || null,
     isLoggedIn: Boolean(customer?.accessToken),
     isAdmin: Boolean(admin?.accessToken),
+    rider,
+    isRider: Boolean(rider?.accessToken),
     saveLogin,
     updateUser,
     logout,

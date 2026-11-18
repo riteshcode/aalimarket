@@ -49,7 +49,7 @@ export default function Dashboard() {
                 <td><Link to={`/admin/orders?open=${getId(o)}`}><strong>#{o.orderNumber}</strong></Link><span className="muted small">{formatDate(o.createdAt, true)}</span></td>
                 <td>{o.user?.name}<span className="muted small">{o.user?.mobile}</span></td>
                 <td>{money(o.pricing?.total)}<span className="muted small">{PAYMENT_LABELS[o.paymentMethod]}</span></td>
-                <td><StatusPill status={o.status} /></td>
+                <td><StatusPill status={o.status} raw /></td>
               </tr>
             ))}
             {!recent.loading && asList(recent.data).length === 0 && <tr><td colSpan={4} className="muted center">No orders yet.</td></tr>}

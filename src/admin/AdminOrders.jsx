@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Search, Phone, MapPin } from 'lucide-react';
+import { Search, Phone, MapPin, Printer, Bike, MessageSquareText } from 'lucide-react';
 import { adminApi } from '../api/endpoints';
 import { useFetch } from '../lib/useFetch';
 import { useLang } from '../context/LangContext';
@@ -21,6 +21,8 @@ function OrderDetail({ orderId, onChanged }) {
   const [status, setStatus] = useState('');
   const [note, setNote] = useState('');
   const [saving, setSaving] = useState(false);
+  const [assigning, setAssigning] = useState(false);
+  const riders = useFetch(() => adminApi.riders({ limit: 100 }), []);
 
   if (loading) return <Spinner />;
   if (error) return <ErrorState error={error} onRetry={reload} />;
@@ -29,6 +31,27 @@ function OrderDetail({ orderId, onChanged }) {
   const addr = order.shippingAddress || {};
   const pricing = order.pricing || {};
   const finished = ['delivered', 'cancelled'].includes(order.status);
+
+  async function assign(riderId) {
+    if (!riderId) return;
+    setAssigning(true);
+    try {
+      await adminApi.assignRider(orderId, riderId);
+      toast.success('Rider assigned');
+      reload();
+      onChanged();
+    } catch (err) {
+      toast.error(err.message);
+    } finally {
+      setAssigning(false);
+    }
+  }
+
+  // Exact GPS pin if the customer shared it, otherwise search by address
+  const mapsUrl = addr.location
+    ? `https://www.google.com/maps/search/?api=1&query=${addr.location.lat},${addr.location.lng}`
+    : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${addr.line1} ${addr.city} ${addr.pincode}`)}`;
+  const activeRiders = asList(riders.data).filter((r) => r.isActive);
 
   async function updateStatus(e) {
     e.preventDefault();
@@ -50,8 +73,11 @@ function OrderDetail({ orderId, onChanged }) {
   return (
     <div className="stack">
       <div className="list-head">
-        <StatusPill status={order.status} />
+        <StatusPill status={order.status} raw />
         <span className="muted small">{formatDate(order.createdAt, true)}</span>
+        <button className="btn btn--ghost btn--sm" onClick={() => window.open(`/admin/print/${orderId}`, '_blank')}>
+          <Printer size={16} /> Print bill
+        </button>
       </div>
 
       <div className="customer-card">
@@ -63,16 +89,32 @@ function OrderDetail({ orderId, onChanged }) {
           <MapPin size={16} />
           <span>
             {[addr.line1, addr.line2, addr.landmark].filter(Boolean).join(', ')}, {addr.city} {addr.pincode}
-            <a
-              className="link-btn small"
-              target="_blank"
-              rel="noreferrer"
-              href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${addr.line1} ${addr.city} ${addr.pincode}`)}`}
-            >
-              Open in Maps
+            <a className="link-btn small" target="_blank" rel="noreferrer" href={mapsUrl}>
+              {addr.location ? 'Open exact location in Maps' : 'Open in Maps'}
             </a>
           </span>
         </div>
+        {order.deliveryNote && (
+          <div className="delivery-note-row">
+            <MessageSquareText size={16} />
+            <span>“{order.deliveryNote}”</span>
+          </div>
+        )}
+      </div>
+
+      <div className="rider-row card">
+        <Bike size={18} />
+        {order.rider ? (
+          <span><strong>{order.rider.name}</strong> <a href={`tel:${order.rider.mobile}`} className="link-btn small">{order.rider.mobile}</a></span>
+        ) : (
+          <span className="muted">No rider assigned</span>
+        )}
+        {!finished && (
+          <select value="" onChange={(e) => assign(e.target.value)} disabled={assigning || activeRiders.length === 0} aria-label="Assign rider">
+            <option value="">{activeRiders.length ? (order.rider ? 'Change rider…' : 'Assign rider…') : 'No active riders'}</option>
+            {activeRiders.map((r) => <option key={r.id} value={r.id}>{r.name} ({r.activeOrders} active)</option>)}
+          </select>
+        )}
       </div>
 
       {!finished && (
@@ -114,7 +156,10 @@ function OrderDetail({ orderId, onChanged }) {
           {pricing.handlingFee > 0 && (<><dt>Handling</dt><dd>{money(pricing.handlingFee)}</dd></>)}
         </dl>
         <div className="bill__total">
-          <span>{PAYMENT_LABELS[order.paymentMethod]} ({order.paymentStatus})</span>
+          <span>
+            {PAYMENT_LABELS[order.paymentMethod]} ({order.paymentStatus})
+            {order.cashCollected !== null && order.cashCollected !== undefined && <span className="muted small">, cash collected {money(order.cashCollected)}</span>}
+          </span>
           <strong>{money(pricing.total)}</strong>
         </div>
       </section>
@@ -186,7 +231,7 @@ export default function AdminOrders() {
       {!loading && !error && (
         <div className="card card--flush">
           <table className="table">
-            <thead><tr><th>Order</th><th>Customer</th><th>Area</th><th>Total</th><th>Status</th></tr></thead>
+            <thead><tr><th>Order</th><th>Customer</th><th>Area</th><th>Total</th><th>Rider</th><th>Status</th></tr></thead>
             <tbody>
               {orders.map((o) => (
                 <tr key={getId(o)} className="table__click" onClick={() => setParam('open', getId(o))}>
@@ -194,10 +239,11 @@ export default function AdminOrders() {
                   <td>{o.user?.name}<span className="muted small">{o.user?.mobile}</span></td>
                   <td>{o.shippingAddress?.city}<span className="muted small">{o.shippingAddress?.pincode}</span></td>
                   <td>{money(o.pricing?.total)}<span className="muted small">{PAYMENT_LABELS[o.paymentMethod]}, {o.paymentStatus}</span></td>
-                  <td><StatusPill status={o.status} /></td>
+                  <td>{o.rider?.name || <span className="muted">–</span>}</td>
+                  <td><StatusPill status={o.status} raw /></td>
                 </tr>
               ))}
-              {orders.length === 0 && <tr><td colSpan={5} className="muted center">No orders match these filters.</td></tr>}
+              {orders.length === 0 && <tr><td colSpan={6} className="muted center">No orders match these filters.</td></tr>}
             </tbody>
           </table>
         </div>

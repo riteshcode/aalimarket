@@ -12,28 +12,30 @@ import { EmptyState } from '../components/States';
 export function BillSummary({ cart }) {
   const mrpSaving = cart.mrpTotal > cart.subtotal ? cart.mrpTotal - cart.subtotal : 0;
   const totalSaving = mrpSaving + (cart.discount || 0);
+  const { t } = useLang();
 
   return (
     <div className="bill">
-      <h2>Bill details</h2>
+      <h2>{t('Bill details')}</h2>
       <dl>
-        {mrpSaving > 0 && (<><dt>MRP total</dt><dd><s>{money(cart.mrpTotal)}</s></dd></>)}
-        <dt>Items total</dt><dd>{money(cart.subtotal)}</dd>
-        {cart.discount > 0 && (<><dt>Coupon {cart.coupon && `(${cart.coupon})`}</dt><dd className="green">−{money(cart.discount)}</dd></>)}
-        <dt>Delivery</dt><dd>{cart.deliveryFee ? money(cart.deliveryFee) : <span className="green">Free</span>}</dd>
-        {cart.handlingFee > 0 && (<><dt>Handling</dt><dd>{money(cart.handlingFee)}</dd></>)}
+        {mrpSaving > 0 && (<><dt>{t('MRP total')}</dt><dd><s>{money(cart.mrpTotal)}</s></dd></>)}
+        <dt>{t('Items total')}</dt><dd>{money(cart.subtotal)}</dd>
+        {cart.discount > 0 && (<><dt>{t('Coupon')} {cart.coupon && `(${cart.coupon})`}</dt><dd className="green">−{money(cart.discount)}</dd></>)}
+        <dt>{t('Delivery')}</dt><dd>{cart.deliveryFee ? money(cart.deliveryFee) : <span className="green">{t('Free')}</span>}</dd>
+        {cart.handlingFee > 0 && (<><dt>{t('Handling')}</dt><dd>{money(cart.handlingFee)}</dd></>)}
       </dl>
       <div className="bill__total">
-        <span>To pay</span>
+        <span>{t('To pay')}</span>
         <strong>{money(cart.total)}</strong>
       </div>
-      {totalSaving > 0 && <p className="bill__saved">You save {money(totalSaving)} on this order</p>}
+      {totalSaving > 0 && <p className="bill__saved">{t('You save {amount} on this order', { amount: money(totalSaving) })}</p>}
     </div>
   );
 }
 
 // "Add ₹X more for free delivery" / minimum order / store closed — driven by GET /settings
 export function CartNotices({ cart, settings }) {
+  const { t } = useLang();
   if (!settings) return null;
   const { freeDeliveryThreshold, minOrderValue, storeOpen, storeTimings } = settings;
   const toFree = freeDeliveryThreshold - cart.subtotal;
@@ -43,20 +45,20 @@ export function CartNotices({ cart, settings }) {
     <>
       {!storeOpen && (
         <p className="cart-notice cart-notice--closed">
-          The store is closed right now. Orders open again at {storeTimings?.open}.
+          {t('The store is closed right now. Orders open again at {time}.', { time: storeTimings?.open })}
         </p>
       )}
       {toMin > 0 && (
-        <p className="cart-notice cart-notice--warn">Minimum order is {money(minOrderValue)}. Add {money(toMin)} more to check out.</p>
+        <p className="cart-notice cart-notice--warn">{t('Minimum order is {min}. Add {amount} more to check out.', { min: money(minOrderValue), amount: money(toMin) })}</p>
       )}
       {freeDeliveryThreshold > 0 && (
         toFree > 0 ? (
           <div className="cart-notice">
-            <span>Add <strong>{money(toFree)}</strong> more for free delivery</span>
+            <span>{t('Add {amount} more for free delivery', { amount: money(toFree) })}</span>
             <span className="progress"><span style={{ width: `${Math.min(100, (cart.subtotal / freeDeliveryThreshold) * 100)}%` }} /></span>
           </div>
         ) : (
-          <p className="cart-notice cart-notice--ok">You’ve unlocked free delivery</p>
+          <p className="cart-notice cart-notice--ok">{t('You’ve unlocked free delivery')}</p>
         )
       )}
     </>
@@ -65,7 +67,7 @@ export function CartNotices({ cart, settings }) {
 
 export default function Cart() {
   const { isLoggedIn } = useAuth();
-  const { tr } = useLang();
+  const { tr, t } = useLang();
   const navigate = useNavigate();
   const { cart, settings, setQty, removeFromCart, busyId, applyCoupon, removeCoupon } = useShop();
   const [code, setCode] = useState('');
@@ -73,7 +75,7 @@ export default function Cart() {
   if (!isLoggedIn) {
     return (
       <div className="page container">
-        <EmptyState icon={ShoppingBag} title="Log in to see your cart" text="Your cart is saved to your account, so it follows you across devices." action="Log in" to="/login?next=/cart" />
+        <EmptyState icon={ShoppingBag} title={t('Log in to see your cart')} text={t('Your cart is saved to your account, so it follows you across devices.')} action={t('Log in')} to="/login?next=/cart" />
       </div>
     );
   }
@@ -81,7 +83,7 @@ export default function Cart() {
   if (cart.items.length === 0) {
     return (
       <div className="page container">
-        <EmptyState icon={ShoppingBag} title="Your cart is empty" text="Add a few things and they’ll wait for you here." action="Start shopping" to="/products" />
+        <EmptyState icon={ShoppingBag} title={t('Your cart is empty')} text={t('Add a few things and they’ll wait for you here.')} action={t('Start shopping')} to="/products" />
       </div>
     );
   }
@@ -95,7 +97,7 @@ export default function Cart() {
 
   return (
     <div className="page container">
-      <h1 className="page-title">Cart <span className="muted">({cart.items.length})</span></h1>
+      <h1 className="page-title">{t('Cart')} <span className="muted">({cart.items.length})</span></h1>
 
       <div className="two-col">
         <div className="card cart-list">
@@ -114,8 +116,8 @@ export default function Cart() {
               </div>
               <div className="cart-item__actions">
                 <QtyStepper qty={item.qty} busy={busyId === item.productId} max={item.stock} onChange={(n) => setQty(item.productId, n)} size="sm" />
-                <button className="link-btn danger" onClick={() => removeFromCart(item.productId)} aria-label="Remove">
-                  <Trash2 size={16} /> Remove
+                <button className="link-btn danger" onClick={() => removeFromCart(item.productId)} aria-label={t('Remove')}>
+                  <Trash2 size={16} /> {t('Remove')}
                 </button>
               </div>
             </div>
@@ -127,14 +129,14 @@ export default function Cart() {
             {cart.coupon ? (
               <div className="coupon__applied">
                 <TicketPercent size={20} />
-                <span><strong>{cart.coupon}</strong> applied</span>
-                <button className="icon-btn icon-btn--sm" onClick={removeCoupon} aria-label="Remove coupon"><X size={16} /></button>
+                <span><strong>{cart.coupon}</strong> {t('applied')}</span>
+                <button className="icon-btn icon-btn--sm" onClick={removeCoupon} aria-label={t('Remove coupon')}><X size={16} /></button>
               </div>
             ) : (
               <form onSubmit={onApply} className="coupon__form">
                 <TicketPercent size={20} />
-                <input value={code} onChange={(e) => setCode(e.target.value)} placeholder="Coupon code" aria-label="Coupon code" />
-                <button className="btn btn--ghost btn--sm" disabled={busyId === 'coupon'}>Apply</button>
+                <input value={code} onChange={(e) => setCode(e.target.value)} placeholder={t('Coupon code')} aria-label={t('Coupon code')} />
+                <button className="btn btn--ghost btn--sm" disabled={busyId === 'coupon'}>{t('Apply')}</button>
               </form>
             )}
             {cart.couponError && <p className="form-error small">{cart.couponError.message || cart.couponError}</p>}
@@ -148,7 +150,7 @@ export default function Cart() {
               onClick={() => navigate('/checkout')}
               disabled={settings && (!settings.storeOpen || cart.subtotal < settings.minOrderValue)}
             >
-              Proceed to checkout
+              {t('Proceed to checkout')}
             </button>
           </div>
         </aside>

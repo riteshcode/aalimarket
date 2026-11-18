@@ -1,8 +1,9 @@
 // All API calls in one place, grouped the same way as the Postman collection.
-import { request } from './client';
+import { request, downloadFile } from './client';
 
 const C = 'customer';
 const A = 'admin';
+const R = 'rider';
 
 export const authApi = {
   sendOtp: (mobile) => request('/auth/otp/send', { method: 'POST', body: { mobile, purpose: 'login' } }),
@@ -49,21 +50,44 @@ export const addressApi = {
 
 export const orderApi = {
   // paymentMethod: cod | upi | card | netbanking
-  create: (addressId, paymentMethod, idempotencyKey) =>
+  create: (addressId, paymentMethod, idempotencyKey, deliveryNote) =>
     request('/orders', {
       method: 'POST',
-      body: { addressId, paymentMethod },
+      body: { addressId, paymentMethod, ...(deliveryNote ? { deliveryNote } : {}) },
       headers: { 'Idempotency-Key': idempotencyKey },
       auth: C,
     }),
   list: (page = 1) => request('/orders', { query: { page, limit: 20 }, auth: C }),
   get: (id) => request(`/orders/${id}`, { auth: C }),
   cancel: (id, reason) => request(`/orders/${id}/cancel`, { method: 'POST', body: { reason }, auth: C }),
+  // Online payment failed/cancelled → try again (returns { payment }) or switch to cash
+  retryPayment: (id) => request(`/orders/${id}/payment`, { method: 'POST', auth: C }),
+  switchToCod: (id) => request(`/orders/${id}/payment-method`, { method: 'PATCH', body: { paymentMethod: 'cod' }, auth: C }),
+  // "Buy again" → { cart, skipped: [{ productId, title, reason, requested, added }] }
+  reorder: (id) => request(`/orders/${id}/reorder`, { method: 'POST', auth: C }),
 };
 
 export const paymentApi = {
   // orderId = our order id; the rest comes from Razorpay's checkout callback
   verify: (body) => request('/payments/verify', { method: 'POST', body, auth: C }),
+};
+
+export const pushApi = {
+  publicKey: () => request('/push/vapid-public-key'),
+  subscribe: (subscription) => request('/me/push-subscriptions', { method: 'POST', body: subscription, auth: C }),
+  unsubscribe: (endpoint) => request('/me/push-subscriptions', { method: 'DELETE', body: { endpoint }, auth: C }),
+};
+
+export const riderApi = {
+  orders: (status) => request('/rider/orders', { query: { status, limit: 50 }, auth: R }),
+  outForDelivery: (id) => request(`/rider/orders/${id}/out-for-delivery`, { method: 'PATCH', auth: R }),
+  // otp is a string ("0042"); cashCollected in paise, only for COD
+  deliver: (id, otp, cashCollected) =>
+    request(`/rider/orders/${id}/deliver`, {
+      method: 'POST',
+      body: { otp, ...(cashCollected !== undefined ? { cashCollected } : {}) },
+      auth: R,
+    }),
 };
 
 export const wishlistApi = {
@@ -86,6 +110,14 @@ export const adminApi = {
   deletePincode: (id) => request(`/admin/pincodes/${id}`, { method: 'DELETE', auth: A }),
   // Products (admin list includes inactive)
   products: (query) => request('/admin/products', { query, auth: A }),
+  // rows: [{ id, price?, mrp?, stock?, isActive? }] → { updated, failed: [{ id, error }] }
+  bulkUpdateProducts: (rows) => request('/admin/products/bulk', { method: 'PATCH', body: rows, auth: A }),
+  exportProducts: () => downloadFile('/admin/products/export', { auth: A, fallbackName: 'products.csv' }),
+  importProducts: (file, dryRun) => {
+    const form = new FormData();
+    form.append('file', file);
+    return request('/admin/products/import', { method: 'POST', body: form, query: { dryRun: String(dryRun) }, auth: A });
+  },
   createProduct: (body) => request('/admin/products', { method: 'POST', body, auth: A }),
   updateProduct: (id, body) => request(`/admin/products/${id}`, { method: 'PATCH', body, auth: A }),
   deleteProduct: (id) => request(`/admin/products/${id}`, { method: 'DELETE', auth: A }),
@@ -107,6 +139,19 @@ export const adminApi = {
   // Orders — query: { page, limit, status, from, to, q }
   orders: (query) => request('/admin/orders', { query, auth: A }),
   order: (id) => request(`/admin/orders/${id}`, { auth: A }),
+  latestOrders: (since) => request('/admin/orders/latest', { query: { since }, auth: A }),
+  assignRider: (id, riderId) => request(`/admin/orders/${id}/assign`, { method: 'PATCH', body: { riderId }, auth: A }),
+  // Riders
+  riders: (query) => request('/admin/riders', { query, auth: A }),
+  createRider: (body) => request('/admin/riders', { method: 'POST', body, auth: A }),
+  updateRider: (id, body) => request(`/admin/riders/${id}`, { method: 'PATCH', body, auth: A }),
+  // Reports (IST days; periods with no orders are left out)
+  salesReport: (query) => request('/admin/reports/sales', { query, auth: A }),
+  topProducts: (query) => request('/admin/reports/top-products', { query, auth: A }),
+  codReport: (date) => request('/admin/reports/cod', { query: { date }, auth: A }),
+  // Reviews
+  reviews: (query) => request('/admin/reviews', { query, auth: A }),
+  deleteReview: (id) => request(`/admin/reviews/${id}`, { method: 'DELETE', auth: A }),
   updateOrderStatus: (id, status, note) =>
     request(`/admin/orders/${id}/status`, { method: 'PATCH', body: { status, note }, auth: A }),
   // Uploads — field name "images" (max 6). Returns { urls: [...] } (absolute S3 URLs)

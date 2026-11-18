@@ -12,7 +12,7 @@ import ProductImage from './ProductImage';
 export default function Header() {
   const navigate = useNavigate();
   const { cartCount } = useShop();
-  const { lang, setLang, tr } = useLang();
+  const { lang, setLang, tr, t } = useLang();
   const { user, isLoggedIn } = useAuth();
   const [query, setQuery] = useState('');
   const [suggestions, setSuggestions] = useState([]);
@@ -52,12 +52,12 @@ export default function Header() {
           <Search size={18} aria-hidden="true" />
           <input
             type="search"
-            placeholder="Search rice, atta, oil…"
+            placeholder={t('Search rice, atta, oil…')}
             value={query}
             onChange={(e) => { setQuery(e.target.value); setOpen(true); }}
             onFocus={() => setOpen(true)}
             onBlur={() => setTimeout(() => setOpen(false), 150)}
-            aria-label="Search products"
+            aria-label={t('Search products')}
             autoComplete="off"
           />
           {open && suggestions.length > 0 && (
@@ -79,20 +79,20 @@ export default function Header() {
           <button
             className="lang-toggle"
             onClick={() => setLang(lang === 'en' ? 'hi' : 'en')}
-            aria-label="Switch language"
-            title="Switch product names between English and Hindi"
+            aria-label={t('Switch language')}
+            title="English / हिंदी"
           >
             <span className={lang === 'en' ? 'is-on' : ''}>EN</span>
             <span className={lang === 'hi' ? 'is-on' : ''}>हिं</span>
           </button>
 
           <nav className="header__links" aria-label="Main">
-            <NavLink to="/products">Shop</NavLink>
-            <NavLink to="/orders">Orders</NavLink>
+            <NavLink to="/products">{t('Shop')}</NavLink>
+            <NavLink to="/orders">{t('Orders')}</NavLink>
             <NavLink to="/wishlist" aria-label="Wishlist"><Heart size={20} /></NavLink>
             <NavLink to={isLoggedIn ? '/account' : '/login'} aria-label="Account">
               <User size={20} />
-              <span className="header__user">{isLoggedIn ? (user?.name?.split(' ')[0] || 'Account') : 'Log in'}</span>
+              <span className="header__user">{isLoggedIn ? (user?.name?.split(' ')[0] || t('Account')) : t('Log in')}</span>
             </NavLink>
           </nav>
 

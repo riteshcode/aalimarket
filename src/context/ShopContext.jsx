@@ -4,6 +4,7 @@ import { cartApi, wishlistApi, catalogApi } from '../api/endpoints';
 import { asList, getId, normalizeCart } from '../lib/format';
 import { useAuth } from './AuthContext';
 import { useToast } from './ToastContext';
+import { useLang } from './LangContext';
 
 const ShopContext = createContext(null);
 
@@ -13,6 +14,7 @@ const EMPTY_CART = normalizeCart({ items: [] });
 export function ShopProvider({ children }) {
   const { isLoggedIn } = useAuth();
   const toast = useToast();
+  const { t } = useLang();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -36,7 +38,6 @@ export function ShopProvider({ children }) {
       setWishlistIds(new Set());
       setWishlistReady(false);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoggedIn]);
 
   async function loadCart() {
@@ -86,18 +87,18 @@ export function ShopProvider({ children }) {
   const qtyInCart = (productId) => cart.items.find((i) => i.productId === productId)?.qty || 0;
 
   const addToCart = (productId, qty = 1) =>
-    cartAction(productId, () => cartApi.addItem(productId, qty), 'Added to cart');
+    cartAction(productId, () => cartApi.addItem(productId, qty), t('Added to cart'));
 
   const setQty = (productId, qty) =>
     cartAction(productId, () => (qty <= 0 ? cartApi.removeItem(productId) : cartApi.updateItem(productId, qty)));
 
   const removeFromCart = (productId) =>
-    cartAction(productId, () => cartApi.removeItem(productId), 'Removed from cart');
+    cartAction(productId, () => cartApi.removeItem(productId), t('Removed from cart'));
 
   const applyCoupon = (code) =>
-    cartAction('coupon', () => cartApi.applyCoupon(code.trim().toUpperCase()), 'Coupon applied');
+    cartAction('coupon', () => cartApi.applyCoupon(code.trim().toUpperCase()), t('Coupon applied'));
 
-  const removeCoupon = () => cartAction('coupon', () => cartApi.removeCoupon(), 'Coupon removed');
+  const removeCoupon = () => cartAction('coupon', () => cartApi.removeCoupon(), t('Coupon removed'));
 
   async function toggleWishlist(productId) {
     if (!requireLogin()) return;
@@ -108,7 +109,7 @@ export function ShopProvider({ children }) {
     setWishlistIds(next);
     try {
       saved ? await wishlistApi.remove(productId) : await wishlistApi.add(productId);
-      toast.success(saved ? 'Removed from wishlist' : 'Saved to wishlist');
+      toast.success(saved ? t('Removed from wishlist') : t('Saved to wishlist'));
     } catch (err) {
       setWishlistIds(wishlistIds);
       toast.error(err.message);

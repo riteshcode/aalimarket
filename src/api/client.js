@@ -7,6 +7,7 @@ const API_BASE = import.meta.env.VITE_API_URL || '/api/v1';
 const STORAGE_KEYS = {
   customer: 'aali.session.customer',
   admin: 'aali.session.admin',
+  rider: 'aali.session.rider',
 };
 
 export function getSession(kind) {
@@ -49,6 +50,15 @@ const ERROR_MESSAGES = {
   STORE_CLOSED: 'The store is closed right now and isn’t taking orders.',
   NOT_SERVICEABLE: 'We don’t deliver to this pincode yet.',
   FORBIDDEN: 'This account doesn’t have access here.',
+  PAYMENT_NOT_RETRYABLE: 'This order can’t be paid online any more.',
+  INVALID_DELIVERY_OTP: 'Wrong OTP. Ask the customer to check the order page.',
+  DELIVERY_OTP_LOCKED: 'Too many wrong OTPs. Ask the store to mark this order delivered.',
+  PAYMENT_METHOD_NOT_CHANGEABLE: 'The payment method of this order can’t be changed any more.',
+  PUSH_NOT_CONFIGURED: 'Notifications aren’t set up on the server yet.',
+  ACCOUNT_DISABLED: 'This account has been turned off. Please contact the store.',
+  FILE_TOO_LARGE: 'This image is too big. Use photos under 5 MB.',
+  UPLOAD_FAILED: 'Image upload failed. Check the image storage settings on the server.',
+  MOBILE_ALREADY_REGISTERED: 'This mobile number already has an account. Use a different number for the rider.',
 };
 
 // One refresh request at a time per session
@@ -96,6 +106,31 @@ function buildUrl(path, query) {
     if (qs) url += '?' + qs;
   }
   return url;
+}
+
+// Adds the saved token; on 401 refreshes once and retries. Returns the raw Response.
+async function authFetch(url, init, auth, retry = true) {
+  const headers = { ...(init.headers || {}) };
+  const session = auth ? getSession(auth) : null;
+  if (session?.accessToken) headers.Authorization = 'Bearer ' + session.accessToken;
+  const res = await fetch(url, { ...init, headers });
+  if (res.status === 401 && auth && retry && (await refreshSession(auth))) {
+    return authFetch(url, init, auth, false);
+  }
+  return res;
+}
+
+/** Downloads a file endpoint (e.g. CSV export) and saves it with the server's file name. */
+export async function downloadFile(path, { auth, fallbackName = 'download' } = {}) {
+  const res = await authFetch(API_BASE + path, { method: 'GET' }, auth);
+  if (!res.ok) throw new ApiError(`Download failed (${res.status})`, 'DOWNLOAD_FAILED', res.status);
+  const blob = await res.blob();
+  const match = /filename="?([^"]+)"?/.exec(res.headers.get('Content-Disposition') || '');
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = match ? match[1] : fallbackName;
+  link.click();
+  URL.revokeObjectURL(link.href);
 }
 
 /**

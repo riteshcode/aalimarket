@@ -30,6 +30,8 @@ export default defineConfig(({ mode }) => {
           ]
         },
         workbox: {
+          // push + notification click handlers live in public/push-sw.js
+          importScripts: ['/push-sw.js'],
           navigateFallbackDenylist: [/^\/api/, /^\/health/],
           runtimeCaching: [
             {

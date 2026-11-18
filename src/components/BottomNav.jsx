@@ -1,10 +1,12 @@
 import { NavLink } from 'react-router-dom';
 import { Home, LayoutGrid, ShoppingBag, Package, User } from 'lucide-react';
 import { useShop } from '../context/ShopContext';
+import { useLang } from '../context/LangContext';
 
 // Mobile-only tab bar (hidden on wide screens via CSS)
 export default function BottomNav() {
   const { cartCount } = useShop();
+  const { t } = useLang();
   const tabs = [
     { to: '/', label: 'Home', icon: Home, end: true },
     { to: '/categories', label: 'Categories', icon: LayoutGrid },
@@ -21,7 +23,7 @@ export default function BottomNav() {
             <Icon size={22} />
             {badge > 0 && <span className="bottom-nav__badge">{badge}</span>}
           </span>
-          {label}
+          {t(label)}
         </NavLink>
       ))}
     </nav>

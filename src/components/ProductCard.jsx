@@ -8,7 +8,7 @@ import { useLang } from '../context/LangContext';
 import { discountPercent, getId } from '../lib/format';
 
 export default function ProductCard({ product }) {
-  const { tr } = useLang();
+  const { tr, t } = useLang();
   const { qtyInCart, addToCart, setQty, busyId, wishlistIds, toggleWishlist } = useShop();
 
   const id = getId(product);
@@ -22,13 +22,13 @@ export default function ProductCard({ product }) {
     <article className="pcard">
       <Link to={href} className="pcard__media">
         <ProductImage src={product.images?.[0]} alt={title} />
-        {off > 0 && <span className="tag-off">{off}% off</span>}
+        {off > 0 && <span className="tag-off">{t('{off}% off', { off })}</span>}
       </Link>
 
       <button
         className={`pcard__wish ${wishlistIds.has(id) ? 'is-saved' : ''}`}
         onClick={() => toggleWishlist(id)}
-        aria-label={wishlistIds.has(id) ? 'Remove from wishlist' : 'Save to wishlist'}
+        aria-label={wishlistIds.has(id) ? t('Remove from wishlist') : t('Save to wishlist')}
       >
         <Heart size={18} />
       </button>
@@ -40,12 +40,12 @@ export default function ProductCard({ product }) {
 
         <div className="pcard__action">
           {outOfStock ? (
-            <span className="pcard__oos">Out of stock</span>
+            <span className="pcard__oos">{t('Out of stock')}</span>
           ) : qty > 0 ? (
             <QtyStepper qty={qty} busy={busyId === id} max={product.stock} onChange={(n) => setQty(id, n)} size="sm" />
           ) : (
             <button className="btn btn--add" disabled={busyId === id} onClick={() => addToCart(id, 1)}>
-              Add
+              {t('Add')}
             </button>
           )}
         </div>

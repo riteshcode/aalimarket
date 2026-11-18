@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { AlertTriangle } from 'lucide-react';
+import { useLang } from '../context/LangContext';
 
 export function Spinner({ label = 'Loading' }) {
   return (
@@ -38,12 +39,13 @@ export function EmptyState({ icon: Icon, title, text, action, to }) {
 }
 
 export function ErrorState({ error, onRetry }) {
+  const { t } = useLang();
   return (
     <div className="empty empty--error">
       <AlertTriangle size={40} strokeWidth={1.5} />
-      <h2>Couldn’t load this</h2>
+      <h2>{t('Couldn’t load this')}</h2>
       <p>{error?.message}</p>
-      {onRetry && <button className="btn btn--ghost" onClick={onRetry}>Try again</button>}
+      {onRetry && <button className="btn btn--ghost" onClick={onRetry}>{t('Try again')}</button>}
     </div>
   );
 }

@@ -63,15 +63,16 @@ function BannerStrip({ banners, categories }) {
   );
 }
 
-function Shelf({ title, sort, linkLabel = 'See all' }) {
+function Shelf({ title, sort }) {
+  const { t } = useLang();
   const { data, loading, error, reload } = useFetch(() => catalogApi.products({ page: 1, limit: 10, sort }), [sort]);
   const products = asList(data);
 
   return (
     <section className="shelf">
       <div className="section-head">
-        <h2>{title}</h2>
-        <Link to={`/products?sort=${sort}`}>{linkLabel}</Link>
+        <h2>{t(title)}</h2>
+        <Link to={`/products?sort=${sort}`}>{t('See all')}</Link>
       </div>
       {loading && <ProductGridSkeleton count={4} />}
       {error && <ErrorState error={error} onRetry={reload} />}
@@ -85,6 +86,7 @@ function Shelf({ title, sort, linkLabel = 'See all' }) {
 }
 
 export default function Home() {
+  const { t } = useLang();
   const banners = useFetch(() => catalogApi.banners(), []);
   const categories = useFetch(() => catalogApi.categories(), []);
   const bannerList = asList(banners.data);
@@ -102,9 +104,9 @@ export default function Home() {
               <s>₹99</s>
             </div>
             <div>
-              <h1>Your town’s lowest prices, delivered home.</h1>
-              <p>Groceries and daily needs from Aali Market. Every price shows how much you save on MRP.</p>
-              <Link to="/products?sort=discount" className="btn btn--haldi">Shop biggest savings</Link>
+              <h1>{t('Your town’s lowest prices, delivered home.')}</h1>
+              <p>{t('Groceries and daily needs from Aali Market. Every price shows how much you save on MRP.')}</p>
+              <Link to="/products?sort=discount" className="btn btn--haldi">{t('Shop biggest savings')}</Link>
             </div>
           </section>
         )
@@ -113,8 +115,8 @@ export default function Home() {
       {categoryList.length > 0 && (
         <section className="shelf">
           <div className="section-head">
-            <h2>Shop by category</h2>
-            <Link to="/categories">All categories</Link>
+            <h2>{t('Shop by category')}</h2>
+            <Link to="/categories">{t('All categories')}</Link>
           </div>
           <div className="chip-row">
             {categoryList.map((c) => <CategoryChip key={getId(c)} category={c} />)}

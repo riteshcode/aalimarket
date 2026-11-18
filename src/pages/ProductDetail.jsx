@@ -34,6 +34,7 @@ function Stars({ value, onChange }) {
 }
 
 function Reviews({ productId }) {
+  const { t } = useLang();
   const { isLoggedIn } = useAuth();
   const toast = useToast();
   const { data, loading, reload } = useFetch(() => catalogApi.reviews(productId), [productId]);
@@ -48,7 +49,7 @@ function Reviews({ productId }) {
     setSaving(true);
     try {
       await catalogApi.addReview(productId, { rating, comment });
-      toast.success('Review posted');
+      toast.success(t('Review posted'));
       setComment('');
       setOpen(false);
       reload();
@@ -62,8 +63,8 @@ function Reviews({ productId }) {
   return (
     <section className="reviews">
       <div className="section-head">
-        <h2>Reviews</h2>
-        {isLoggedIn && !open && <button className="link-btn" onClick={() => setOpen(true)}>Write a review</button>}
+        <h2>{t('Reviews')}</h2>
+        {isLoggedIn && !open && <button className="link-btn" onClick={() => setOpen(true)}>{t('Write a review')}</button>}
       </div>
 
       {open && (
@@ -71,25 +72,25 @@ function Reviews({ productId }) {
           <Stars value={rating} onChange={setRating} />
           <textarea
             rows={3}
-            placeholder="How was the quality, freshness, packing?"
+            placeholder={t('How was the quality, freshness, packing?')}
             value={comment}
             onChange={(e) => setComment(e.target.value)}
             required
           />
           <div className="row-end">
-            <button type="button" className="btn btn--ghost" onClick={() => setOpen(false)}>Cancel</button>
-            <button className="btn btn--primary" disabled={saving}>{saving ? 'Posting…' : 'Post review'}</button>
+            <button type="button" className="btn btn--ghost" onClick={() => setOpen(false)}>{t('Cancel')}</button>
+            <button className="btn btn--primary" disabled={saving}>{saving ? t('Posting…') : t('Post review')}</button>
           </div>
         </form>
       )}
 
       {loading && <Spinner />}
-      {!loading && reviews.length === 0 && <p className="muted">No reviews yet. Shoppers can review after delivery.</p>}
+      {!loading && reviews.length === 0 && <p className="muted">{t('No reviews yet. Shoppers can review after delivery.')}</p>}
       <ul className="review-list">
         {reviews.map((r) => (
           <li key={getId(r)} className="review">
             <div className="review__top">
-              <strong>{r.user?.name || r.userName || 'Shopper'}</strong>
+              <strong>{r.user?.name || t('Shopper')}</strong>
               <Stars value={r.rating} />
             </div>
             <p>{r.comment}</p>
@@ -103,7 +104,7 @@ function Reviews({ productId }) {
 
 export default function ProductDetail() {
   const { slug } = useParams();
-  const { tr } = useLang();
+  const { tr, t } = useLang();
   const { qtyInCart, addToCart, setQty, busyId, wishlistIds, toggleWishlist } = useShop();
   const { data: product, loading, error, reload } = useFetch(() => catalogApi.product(slug), [slug]);
   const [activeImg, setActiveImg] = useState(0);
@@ -126,7 +127,7 @@ export default function ProductDetail() {
   return (
     <div className="page container">
       <nav className="crumbs" aria-label="Breadcrumb">
-        <Link to="/">Home</Link> / <Link to="/products">Shop</Link>
+        <Link to="/">{t('Home')}</Link> / <Link to="/products">{t('Shop')}</Link>
         {product.category?.name && (
           <> / <Link to={`/products?category=${getId(product.category)}`}>{tr(product.category.name)}</Link></>
         )}
@@ -136,7 +137,7 @@ export default function ProductDetail() {
         <div className="pdp__gallery">
           <div className="pdp__main">
             <ProductImage src={images[activeImg]} alt={title} />
-            {off > 0 && <span className="tag-off tag-off--lg">{off}% off</span>}
+            {off > 0 && <span className="tag-off tag-off--lg">{t('{off}% off', { off })}</span>}
           </div>
           {images.length > 1 && (
             <div className="pdp__thumbs">
@@ -155,43 +156,43 @@ export default function ProductDetail() {
           <span className="pdp__unit">{product.unit}</span>
 
           <Price price={product.price} mrp={product.mrp} size="lg" />
-          <p className="muted small">Inclusive of all taxes</p>
+          <p className="muted small">{t('Inclusive of all taxes')}</p>
 
           <div className="pdp__buy">
             {outOfStock ? (
-              <span className="pcard__oos">Out of stock</span>
+              <span className="pcard__oos">{t('Out of stock')}</span>
             ) : qty > 0 ? (
               <>
                 <QtyStepper qty={qty} busy={busyId === id} max={product.stock} onChange={(n) => setQty(id, n)} />
-                <Link to="/cart" className="btn btn--primary btn--grow">Go to cart</Link>
+                <Link to="/cart" className="btn btn--primary btn--grow">{t('Go to cart')}</Link>
               </>
             ) : (
               <>
                 <QtyStepper qty={pickQty} max={product.stock} onChange={(n) => setPickQty(Math.max(1, n))} />
                 <button className="btn btn--primary btn--grow" disabled={busyId === id} onClick={() => addToCart(id, pickQty)}>
-                  Add to cart
+                  {t('Add to cart')}
                 </button>
               </>
             )}
             <button
               className={`icon-btn ${wishlistIds.has(id) ? 'is-saved' : ''}`}
               onClick={() => toggleWishlist(id)}
-              aria-label="Save to wishlist"
+              aria-label={t('Save to wishlist')}
             >
               <Heart size={20} />
             </button>
           </div>
 
-          {product.stock > 0 && product.stock <= 10 && <p className="low-stock">Only {product.stock} left</p>}
+          {product.stock > 0 && product.stock <= 10 && <p className="low-stock">{t('Only {n} left', { n: product.stock })}</p>}
 
           <ul className="pdp__perks">
-            <li><Truck size={18} /> Delivered from your local store</li>
-            <li><RotateCcw size={18} /> Cancel any time before it ships</li>
+            <li><Truck size={18} /> {t('Delivered from your local store')}</li>
+            <li><RotateCcw size={18} /> {t('Cancel any time before it ships')}</li>
           </ul>
 
           {product.description && (
             <div className="pdp__desc">
-              <h2>About this product</h2>
+              <h2>{t('About this product')}</h2>
               <p>{tr(product.description)}</p>
             </div>
           )}
@@ -202,7 +203,7 @@ export default function ProductDetail() {
 
       {relatedList.length > 0 && (
         <section className="shelf">
-          <div className="section-head"><h2>You may also need</h2></div>
+          <div className="section-head"><h2>{t('You may also need')}</h2></div>
           <div className="shelf__row">
             {relatedList.map((p) => <ProductCard key={getId(p)} product={p} />)}
           </div>

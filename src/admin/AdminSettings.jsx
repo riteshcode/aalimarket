@@ -11,6 +11,8 @@ export default function AdminSettings() {
   const [form, setForm] = useState(null);
   const [updatedAt, setUpdatedAt] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [info, setInfo] = useState(null);
+  const [savingInfo, setSavingInfo] = useState(false);
 
   useEffect(() => {
     adminApi.settings()
@@ -30,6 +32,37 @@ export default function AdminSettings() {
       close: data.storeTimings?.close || '22:00',
     });
     setUpdatedAt(data.updatedAt);
+    // Store details: shown on the legal pages, footer and printed bills
+    setInfo({
+      storeName: data.storeName || '',
+      phone: data.phone || '',
+      whatsapp: data.whatsapp || '',
+      email: data.email || '',
+      line1: data.address?.line1 || '',
+      city: data.address?.city || '',
+      state: data.address?.state || '',
+      pincode: data.address?.pincode || '',
+      fssaiNumber: data.fssaiNumber || '',
+      gstin: data.gstin || '',
+    });
+  }
+
+  const setI = (key, value) => setInfo((f) => ({ ...f, [key]: value }));
+
+  async function saveInfo(e) {
+    e.preventDefault();
+    setSavingInfo(true);
+    try {
+      const { line1, city, state, pincode, ...rest } = info;
+      // "" clears a value on the backend
+      const { data } = await adminApi.updateSettings({ ...rest, address: { line1, city, state, pincode } });
+      fill(data);
+      toast.success('Store details saved');
+    } catch (err) {
+      toast.error(err.message);
+    } finally {
+      setSavingInfo(false);
+    }
   }
 
   const set = (key, value) => setForm((f) => ({ ...f, [key]: value }));
@@ -116,6 +149,56 @@ export default function AdminSettings() {
         <div className="row-end field--full">
           {updatedAt && <span className="muted small grow">Last changed {formatDate(updatedAt, true)}</span>}
           <button className="btn btn--primary" disabled={saving}>{saving ? 'Saving…' : 'Save settings'}</button>
+        </div>
+      </form>
+
+      <form className="card form-grid" onSubmit={saveInfo}>
+        <div className="field--full">
+          <h2 className="card__title">Store details</h2>
+          <p className="muted small">Shown on bills, the footer, and the Contact, About and policy pages.</p>
+        </div>
+        <label className="field field--full">
+          <span className="field__label">Store name</span>
+          <input value={info.storeName} onChange={(e) => setI('storeName', e.target.value)} required />
+        </label>
+        <label className="field">
+          <span className="field__label">Phone</span>
+          <input value={info.phone} onChange={(e) => setI('phone', e.target.value)} placeholder="+91 98765 43210" />
+        </label>
+        <label className="field">
+          <span className="field__label">WhatsApp number</span>
+          <input value={info.whatsapp} onChange={(e) => setI('whatsapp', e.target.value.replace(/[^\d]/g, ''))} inputMode="numeric" maxLength={10} placeholder="9876543210" />
+        </label>
+        <label className="field field--full">
+          <span className="field__label">Email</span>
+          <input type="email" value={info.email} onChange={(e) => setI('email', e.target.value)} />
+        </label>
+        <label className="field field--full">
+          <span className="field__label">Shop address</span>
+          <input value={info.line1} onChange={(e) => setI('line1', e.target.value)} placeholder="12 Station Road" />
+        </label>
+        <label className="field">
+          <span className="field__label">City</span>
+          <input value={info.city} onChange={(e) => setI('city', e.target.value)} />
+        </label>
+        <label className="field">
+          <span className="field__label">Pincode</span>
+          <input value={info.pincode} onChange={(e) => setI('pincode', e.target.value.replace(/[^\d]/g, ''))} inputMode="numeric" maxLength={6} />
+        </label>
+        <label className="field field--full">
+          <span className="field__label">State</span>
+          <input value={info.state} onChange={(e) => setI('state', e.target.value)} />
+        </label>
+        <label className="field">
+          <span className="field__label">FSSAI licence number</span>
+          <input value={info.fssaiNumber} onChange={(e) => setI('fssaiNumber', e.target.value.replace(/[^\d]/g, ''))} inputMode="numeric" maxLength={14} />
+        </label>
+        <label className="field">
+          <span className="field__label">GSTIN <em>optional</em></span>
+          <input value={info.gstin} onChange={(e) => setI('gstin', e.target.value.toUpperCase())} maxLength={15} />
+        </label>
+        <div className="row-end field--full">
+          <button className="btn btn--primary" disabled={savingInfo}>{savingInfo ? 'Saving…' : 'Save store details'}</button>
         </div>
       </form>
     </div>

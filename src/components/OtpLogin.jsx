@@ -1,12 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
 import { ArrowLeft } from 'lucide-react';
 import { authApi } from '../api/endpoints';
+import { useLang } from '../context/LangContext';
 
 /**
  * Two-step mobile + OTP login, used by both shopper and admin login screens.
  * onVerified(data) receives { accessToken, refreshToken, user }.
  */
 export default function OtpLogin({ askName = true, onVerified, defaultMobile = '' }) {
+  const { t } = useLang();
   const [step, setStep] = useState('mobile');
   const [mobile, setMobile] = useState(defaultMobile);
   const [code, setCode] = useState('');
@@ -29,7 +31,7 @@ export default function OtpLogin({ askName = true, onVerified, defaultMobile = '
   async function sendOtp(e) {
     e?.preventDefault();
     setError('');
-    if (!/^[6-9]\d{9}$/.test(mobile)) return setError('Enter a 10-digit mobile number.');
+    if (!/^[6-9]\d{9}$/.test(mobile)) return setError(t('Enter a 10-digit mobile number.'));
     setBusy(true);
     try {
       await authApi.sendOtp(mobile);
@@ -60,7 +62,7 @@ export default function OtpLogin({ askName = true, onVerified, defaultMobile = '
     return (
       <form onSubmit={sendOtp} className="otp">
         <label className="field">
-          <span className="field__label">Mobile number</span>
+          <span className="field__label">{t('Mobile number')}</span>
           <div className="phone-input">
             <span>+91</span>
             <input
@@ -77,7 +79,7 @@ export default function OtpLogin({ askName = true, onVerified, defaultMobile = '
           </div>
         </label>
         {error && <p className="form-error">{error}</p>}
-        <button className="btn btn--primary btn--block" disabled={busy}>{busy ? 'Sending…' : 'Send OTP'}</button>
+        <button className="btn btn--primary btn--block" disabled={busy}>{busy ? t('Sending…') : t('Send OTP')}</button>
       </form>
     );
   }
@@ -89,7 +91,7 @@ export default function OtpLogin({ askName = true, onVerified, defaultMobile = '
       </button>
 
       <label className="field">
-        <span className="field__label">Enter the 6-digit OTP</span>
+        <span className="field__label">{t('Enter the 6-digit OTP')}</span>
         <input
           ref={codeRef}
           className="otp__code"
@@ -104,19 +106,19 @@ export default function OtpLogin({ askName = true, onVerified, defaultMobile = '
 
       {askName && (
         <label className="field">
-          <span className="field__label">Your name <em>for new accounts</em></span>
+          <span className="field__label">{t('Your name')} <em>{t('for new accounts')}</em></span>
           <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Ritesh" autoComplete="name" />
         </label>
       )}
 
       {import.meta.env.DEV && (
-        <p className="dev-hint">Dev mode: the OTP is printed in the backend server console.</p>
+        <p className="dev-hint">{t('Dev mode: the OTP is printed in the backend server console.')}</p>
       )}
 
       {error && <p className="form-error">{error}</p>}
-      <button className="btn btn--primary btn--block" disabled={busy || code.length < 4}>{busy ? 'Checking…' : 'Verify and continue'}</button>
+      <button className="btn btn--primary btn--block" disabled={busy || code.length < 4}>{busy ? t('Checking…') : t('Verify and continue')}</button>
       <button type="button" className="link-btn center" disabled={timer > 0 || busy} onClick={sendOtp}>
-        {timer > 0 ? `Resend OTP in ${timer}s` : 'Resend OTP'}
+        {timer > 0 ? t('Resend OTP in {s}s', { s: timer }) : t('Resend OTP')}
       </button>
     </form>
   );

@@ -7,6 +7,7 @@ import { useToast } from '../context/ToastContext';
 import { asList, getId, money, normalizeCart } from '../lib/format';
 import { collectPayment } from '../lib/payment';
 import { useAuth } from '../context/AuthContext';
+import { useLang } from '../context/LangContext';
 import AddressForm from '../components/AddressForm';
 import { BillSummary, CartNotices } from './Cart';
 import { Spinner } from '../components/States';
@@ -23,6 +24,7 @@ export default function Checkout() {
   const toast = useToast();
   const { cart, loadCart, settings } = useShop();
   const { user } = useAuth();
+  const { tr, t } = useLang();
   // Cart totals for the selected pincode (some areas have their own delivery fee)
   const [areaCart, setAreaCart] = useState(null);
 
@@ -34,10 +36,13 @@ export default function Checkout() {
   const [service, setService] = useState(null); // { ok, message }
   const [payment, setPayment] = useState('cod');
   const [placing, setPlacing] = useState(false);
+  const [deliveryNote, setDeliveryNote] = useState('');
 
   // One key per checkout visit — a double tap on "Place order" won't create two orders
   const idempotencyKey = useMemo(() => crypto.randomUUID?.() || String(Date.now()) + Math.random(), []);
 
+  // Load once when checkout opens
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { loadAddresses(); }, []);
 
   async function loadAddresses() {
@@ -68,11 +73,11 @@ export default function Checkout() {
 
     addressApi.serviceability(pincode)
       .then(({ data }) => {
-        const area = data.areaName?.en ? `${data.areaName.en} (${data.pincode})` : data.pincode;
-        const eta = data.etaDays ? `delivery in ${data.etaDays} day${data.etaDays > 1 ? 's' : ''}` : '';
+        const area = data.areaName ? `${tr(data.areaName)} (${data.pincode})` : data.pincode;
+        const eta = data.etaDays ? t('delivery in {n} day(s)', { n: data.etaDays }) : '';
         setService({
           ok: data.serviceable,
-          message: data.serviceable ? `We deliver to ${area}` : `We don’t deliver to ${data.pincode} yet`,
+          message: data.serviceable ? t('We deliver to {area}', { area }) : t('We don’t deliver to {pincode} yet', { pincode: data.pincode }),
           eta,
         });
       })
@@ -81,13 +86,15 @@ export default function Checkout() {
     cartApi.get(pincode)
       .then(({ data }) => setAreaCart(normalizeCart(data)))
       .catch(() => setAreaCart(null));
+    // t/tr are recreated every render — listing them would refetch in a loop
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedAddress?.pincode, cart.total]);
 
   async function saveAddress(form) {
     setSavingAddr(true);
     try {
       const { data } = await addressApi.create(form);
-      toast.success('Address saved');
+      toast.success(t('Address saved'));
       setAdding(false);
       await loadAddresses();
       if (getId(data)) setSelected(getId(data));
@@ -99,10 +106,10 @@ export default function Checkout() {
   }
 
   async function placeOrder() {
-    if (!selected) return toast.error('Choose a delivery address first.');
+    if (!selected) return toast.error(t('Choose a delivery address first.'));
     setPlacing(true);
     try {
-      const { data: order } = await orderApi.create(selected, payment, idempotencyKey);
+      const { data: order } = await orderApi.create(selected, payment, idempotencyKey, deliveryNote.trim());
       await loadCart();
 
       // UPI / card / net banking: open the payment step, then verify with the backend
@@ -111,7 +118,7 @@ export default function Checkout() {
           const result = await collectPayment(order.payment, user);
           await paymentApi.verify({ orderId: getId(order), ...result });
         } catch (err) {
-          toast.error(`${err.message}. Your order is saved with payment pending.`);
+          toast.error(`${err.message}. ${t('Your order is saved. You can pay from the order page.')}`);
         }
       }
 
@@ -127,15 +134,15 @@ export default function Checkout() {
 
   return (
     <div className="page container">
-      <h1 className="page-title">Checkout</h1>
+      <h1 className="page-title">{t('Checkout')}</h1>
 
       <div className="two-col">
         <div className="stack">
           <section className="card">
             <div className="card__head">
-              <h2><MapPin size={18} /> Deliver to</h2>
+              <h2><MapPin size={18} /> {t('Deliver to')}</h2>
               {!adding && addresses.length > 0 && (
-                <button className="link-btn" onClick={() => setAdding(true)}><Plus size={16} /> New address</button>
+                <button className="link-btn" onClick={() => setAdding(true)}><Plus size={16} /> {t('New address')}</button>
               )}
             </div>
 
@@ -147,7 +154,7 @@ export default function Checkout() {
                   <label key={getId(a)} className={`radio-card ${selected === getId(a) ? 'is-on' : ''}`}>
                     <input type="radio" name="address" checked={selected === getId(a)} onChange={() => setSelected(getId(a))} />
                     <div>
-                      <strong>{a.label}</strong>
+                      <strong>{t(a.label)}</strong>
                       <p>{[a.line1, a.line2, a.landmark].filter(Boolean).join(', ')}</p>
                       <p className="muted small">{a.city}, {a.state} {a.pincode}</p>
                     </div>
@@ -164,6 +171,19 @@ export default function Checkout() {
               />
             )}
 
+            {!adding && addresses.length > 0 && (
+              <label className="field note-field">
+                <span className="field__label">{t('Note for the delivery person')} <em>{t('optional')}</em></span>
+                <textarea
+                  rows={2}
+                  maxLength={200}
+                  value={deliveryNote}
+                  onChange={(e) => setDeliveryNote(e.target.value)}
+                  placeholder={t('e.g. Call when you reach the gate')}
+                />
+              </label>
+            )}
+
             {service && !adding && (
               <p className={`service ${service.ok ? 'is-ok' : 'is-no'}`}>
                 {service.ok ? <CheckCircle2 size={16} /> : <XCircle size={16} />}
@@ -173,21 +193,21 @@ export default function Checkout() {
           </section>
 
           <section className="card">
-            <div className="card__head"><h2>Payment</h2></div>
+            <div className="card__head"><h2>{t('Payment')}</h2></div>
             <div className="radio-list">
               {PAYMENTS.map(({ value, label, hint, icon: Icon }) => (
                 <label key={value} className={`radio-card ${payment === value ? 'is-on' : ''}`}>
                   <input type="radio" name="payment" checked={payment === value} onChange={() => setPayment(value)} />
                   <Icon size={20} />
                   <div>
-                    <strong>{label}</strong>
-                    {hint && <p className="muted small">{hint}</p>}
+                    <strong>{t(label)}</strong>
+                    {hint && <p className="muted small">{t(hint)}</p>}
                   </div>
                 </label>
               ))}
             </div>
             {payment !== 'cod' && (
-              <p className="muted small note">Online payment is confirmed by the payment provider after the order is placed.</p>
+              <p className="muted small note">{t('You’ll pay right after placing the order.')}</p>
             )}
           </section>
         </div>
@@ -201,7 +221,7 @@ export default function Checkout() {
               onClick={placeOrder}
               disabled={placing || !selected || adding || service?.ok === false || settings?.storeOpen === false}
             >
-              {placing ? 'Placing order…' : `Place order (${money((areaCart || cart).total)})`}
+              {placing ? t('Placing order…') : t('Place order ({amount})', { amount: money((areaCart || cart).total) })}
             </button>
           </div>
         </aside>
