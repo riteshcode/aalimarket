@@ -236,3 +236,8 @@
 .seg--tabs { flex-wrap: wrap; }
 .tiles--6 { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)) !important; }
 .tile--attention { border-color: var(--haldi); background: var(--haldi-soft); }
+
+/* ---------- Refunds in the order drawer ---------- */
+.refund-admin { display: grid; gap: 10px; }
+.refund-admin .card__head { margin-bottom: 0; }
+.refund-admin .history .pill { margin-left: 4px; }

@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
 import { NavLink, Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Package, Tags, TicketPercent, Image, Truck, LogOut, Store, Users, MapPin, Settings, Bell, Bike, BarChart3, MessageSquare } from 'lucide-react';
+import { LayoutDashboard, Package, Tags, TicketPercent, Image, Truck, LogOut, Store, Users, MapPin, Settings, Bell, Bike, BarChart3, MessageSquare, KeyRound } from 'lucide-react';
 import Logo from '../components/Logo';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { useNewOrderAlert } from './useNewOrderAlert';
+import { Drawer } from './AdminUi';
+import ChangePasswordForm from '../components/ChangePasswordForm';
 
 const LINKS = [
   { to: '/admin', label: 'Overview', icon: LayoutDashboard, end: true },
@@ -26,6 +28,7 @@ export default function AdminLayout() {
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const toast = useToast();
+  const [changingPassword, setChangingPassword] = useState(false);
   const [alertsOn, setAlertsOn] = useState(() => 'Notification' in window && Notification.permission === 'granted');
 
   const { unseen, clearUnseen } = useNewOrderAlert(isAdmin, (order, count) => {
@@ -73,13 +76,26 @@ export default function AdminLayout() {
         )}
         <div className="admin__foot">
           <NavLink to="/"><Store size={18} /> <span>View store</span></NavLink>
+          <button onClick={() => setChangingPassword(true)}><KeyRound size={18} /> <span>Change password</span></button>
           <button onClick={onLogout}><LogOut size={18} /> <span>Log out</span></button>
-          {admin?.user?.mobile && <p className="muted small">+91 {admin.user.mobile}</p>}
+          {admin?.user && <p className="muted small">{admin.user.username || admin.user.mobile}</p>}
         </div>
       </aside>
       <main className="admin__main">
         <Outlet />
       </main>
+      {changingPassword && (
+        <Drawer title="Change password" onClose={() => setChangingPassword(false)}>
+          <p className="muted small">You’ll stay logged in here. Every other device using this account will be logged out.</p>
+          <ChangePasswordForm
+            kind="admin"
+            onDone={() => {
+              setChangingPassword(false);
+              toast.success('Password changed');
+            }}
+          />
+        </Drawer>
+      )}
     </div>
   );
 }

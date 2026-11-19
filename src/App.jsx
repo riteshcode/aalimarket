@@ -5,6 +5,7 @@ import { AuthProvider } from './context/AuthContext';
 import { LangProvider, useLang } from './context/LangContext';
 import { ToastProvider } from './context/ToastContext';
 import { ShopProvider, useShop } from './context/ShopContext';
+import { LocationProvider } from './context/LocationContext';
 import Header from './components/Header';
 import BottomNav from './components/BottomNav';
 import Footer from './components/Footer';
@@ -99,6 +100,7 @@ export default function App() {
       <AuthProvider>
         <LangProvider>
           <ToastProvider>
+            <LocationProvider>
             <ShopProvider>
               <Suspense fallback={<Spinner />}>
                 <Routes>
@@ -145,6 +147,7 @@ export default function App() {
                 </Routes>
               </Suspense>
             </ShopProvider>
+            </LocationProvider>
           </ToastProvider>
         </LangProvider>
       </AuthProvider>

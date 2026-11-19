@@ -12,6 +12,9 @@ function RiderForm({ rider, onSaved, onCancel }) {
   const [saving, setSaving] = useState(false);
   const [name, setName] = useState(rider?.name || '');
   const [mobile, setMobile] = useState(rider?.mobile || '');
+  const [username, setUsername] = useState(rider?.username || '');
+  // Editing: blank = keep the current password; typing one resets it (and logs the rider out everywhere)
+  const [password, setPassword] = useState('');
 
   async function submit(e) {
     e.preventDefault();
@@ -19,11 +22,18 @@ function RiderForm({ rider, onSaved, onCancel }) {
     try {
       if (rider) {
         const body = { name };
-        if (mobile !== rider.mobile) body.mobile = mobile; // rider logs in with the new number from now on
+        if (mobile !== rider.mobile) body.mobile = mobile;
+        if (username && username !== rider.username) body.username = username;
+        if (password) body.password = password;
         await adminApi.updateRider(rider.id, body);
+      } else {
+        await adminApi.createRider({ name, mobile, username, password });
       }
-      else await adminApi.createRider({ name, mobile });
-      toast.success(rider ? 'Rider updated' : 'Rider added. They can log in at /rider with this number.');
+      toast.success(
+        rider
+          ? password ? 'Rider updated. Their password was reset, so they need to log in again.' : 'Rider updated'
+          : `Rider added. Share the username "${username}" and the password with them.`
+      );
       onSaved();
     } catch (err) {
       toast.error(err.message);
@@ -39,7 +49,7 @@ function RiderForm({ rider, onSaved, onCancel }) {
         <input value={name} onChange={(e) => setName(e.target.value)} required />
       </label>
       <label className="field field--full">
-        <span className="field__label">Mobile {rider && <em>rider logs in with this number</em>}</span>
+        <span className="field__label">Mobile <em>for calls and alerts</em></span>
         <input
           value={mobile}
           onChange={(e) => setMobile(e.target.value.replace(/\D/g, ''))}
@@ -49,11 +59,36 @@ function RiderForm({ rider, onSaved, onCancel }) {
           required
         />
       </label>
-      {!rider && (
-        <p className="muted small field--full">
-          Use a number that isn’t already a customer account. The rider logs in at <strong>/rider</strong> with an OTP.
-        </p>
-      )}
+      <label className="field">
+        <span className="field__label">Username <em>for login</em></span>
+        <input
+          value={username}
+          onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9._]/g, ''))}
+          placeholder="ramesh.kumar"
+          minLength={3}
+          maxLength={30}
+          autoCapitalize="none"
+          required={!rider || !rider.username}
+        />
+      </label>
+      <label className="field">
+        <span className="field__label">{rider ? 'New password' : 'Password'} <em>{rider ? 'leave blank to keep' : 'min 8, letter + number'}</em></span>
+        <input
+          type="text"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          minLength={8}
+          pattern="(?=.*[A-Za-z])(?=.*\d).{8,}"
+          title="At least 8 characters with a letter and a number"
+          autoComplete="new-password"
+          required={!rider || !rider.username}
+        />
+      </label>
+      <p className="muted small field--full">
+        {rider
+          ? 'Typing a new password resets it and logs the rider out on every phone.'
+          : 'Use a mobile number that isn’t a customer account. The rider logs in at /rider with this username and password.'}
+      </p>
       <div className="row-end field--full">
         <button type="button" className="btn btn--ghost" onClick={onCancel}>Cancel</button>
         <button className="btn btn--primary" disabled={saving}>{saving ? 'Saving…' : 'Save rider'}</button>
@@ -87,7 +122,7 @@ export default function AdminRiders() {
 
       <div className="notice notice--info">
         <Info size={18} />
-        <p>Riders open <strong>{window.location.origin}/rider</strong> on their phone and log in with their mobile number. Assign them orders from the Orders page.</p>
+        <p>Riders open <strong>{window.location.origin}/rider</strong> on their phone and log in with the username and password you set here. Riders added before passwords existed show “Set login”.</p>
       </div>
 
       {loading && <Spinner />}
@@ -96,11 +131,12 @@ export default function AdminRiders() {
       {!loading && !error && (
         <div className="card card--flush">
           <table className="table">
-            <thead><tr><th>Name</th><th>Mobile</th><th>Active orders</th><th>Added</th><th>Active</th><th aria-label="Actions" /></tr></thead>
+            <thead><tr><th>Name</th><th>Username</th><th>Mobile</th><th>Active orders</th><th>Added</th><th>Active</th><th aria-label="Actions" /></tr></thead>
             <tbody>
               {riders.map((r) => (
                 <tr key={r.id}>
                   <td><strong>{r.name}</strong></td>
+                  <td>{r.username || <button className="link-btn small warn" onClick={() => setEditing(r)}>Set login</button>}</td>
                   <td><a href={`tel:${r.mobile}`} className="link-btn">{r.mobile}</a></td>
                   <td>{r.activeOrders}</td>
                   <td>{formatDate(r.createdAt)}</td>
@@ -110,7 +146,7 @@ export default function AdminRiders() {
                   </td>
                 </tr>
               ))}
-              {riders.length === 0 && <tr><td colSpan={6} className="muted center">No riders yet.</td></tr>}
+              {riders.length === 0 && <tr><td colSpan={7} className="muted center">No riders yet.</td></tr>}
             </tbody>
           </table>
         </div>

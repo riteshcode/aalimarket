@@ -8,6 +8,7 @@ import { asList, getId, money, normalizeCart } from '../lib/format';
 import { collectPayment } from '../lib/payment';
 import { useAuth } from '../context/AuthContext';
 import { useLang } from '../context/LangContext';
+import { useLocationPref } from '../context/LocationContext';
 import AddressForm from '../components/AddressForm';
 import { BillSummary, CartNotices } from './Cart';
 import { Spinner } from '../components/States';
@@ -25,6 +26,7 @@ export default function Checkout() {
   const { cart, loadCart, settings } = useShop();
   const { user } = useAuth();
   const { tr, t } = useLang();
+  const { location } = useLocationPref();
   // Cart totals for the selected pincode (some areas have their own delivery fee)
   const [areaCart, setAreaCart] = useState(null);
 
@@ -51,7 +53,8 @@ export default function Checkout() {
       const { data } = await addressApi.list();
       const list = asList(data);
       setAddresses(list);
-      const def = list.find((a) => a.isDefault) || list[0];
+      // Start with the address picked in the header, else the default one
+      const def = list.find((a) => a.id === location?.addressId) || list.find((a) => a.isDefault) || list[0];
       setSelected(def ? getId(def) : null);
       setAdding(list.length === 0);
     } catch (err) {

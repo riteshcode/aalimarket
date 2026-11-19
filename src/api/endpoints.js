@@ -10,6 +10,11 @@ export const authApi = {
   verifyOtp: (mobile, code, name) =>
     request('/auth/otp/verify', { method: 'POST', body: { mobile, code, purpose: 'login', ...(name ? { name } : {}) } }),
   logout: (refreshToken) => request('/auth/logout', { method: 'POST', body: { refreshToken } }),
+  // Admin + rider: username / password (customers keep the OTP)
+  staffLogin: (username, password) => request('/auth/staff/login', { method: 'POST', body: { username, password } }),
+  // kind = 'admin' | 'rider' → { accessToken, refreshToken, passwordChangedAt }
+  changePassword: (kind, currentPassword, newPassword) =>
+    request('/me/password', { method: 'PATCH', body: { currentPassword, newPassword }, auth: kind }),
   me: () => request('/me', { auth: C }),
   updateMe: (body) => request('/me', { method: 'PATCH', body, auth: C }),
 };
@@ -28,6 +33,11 @@ export const catalogApi = {
   addReview: (productId, body) => request(`/products/${productId}/reviews`, { method: 'POST', body, auth: C }),
   // The shopper's own review in any status (pending / approved / rejected), or null
   myReview: (productId) => request(`/products/${productId}/reviews/mine`, { auth: C }),
+};
+
+export const couponApi = {
+  // Sends the shopper's token when logged in, so coupons they've used up are left out
+  available: () => request('/coupons/available', { auth: C }),
 };
 
 export const cartApi = {
@@ -79,6 +89,11 @@ export const paymentApi = {
 };
 
 // kind = 'customer' (order updates) or 'rider' (new deliveries)
+// GPS → area name + pincode (backend reverse-geocodes; see the backend prompt)
+export const geoApi = {
+  reverse: (lat, lng) => request('/geo/reverse', { query: { lat, lng } }),
+};
+
 export const pushApi = {
   publicKey: () => request('/push/vapid-public-key'),
   subscribe: (subscription, kind = C) => request('/me/push-subscriptions', { method: 'POST', body: subscription, auth: kind }),
@@ -146,6 +161,9 @@ export const adminApi = {
   // Orders — query: { page, limit, status, from, to, q }
   orders: (query) => request('/admin/orders', { query, auth: A }),
   order: (id) => request(`/admin/orders/${id}`, { auth: A }),
+  // { amount? (paise; default = everything still refundable), reason }
+  refundOrder: (id, amount, reason) =>
+    request(`/admin/orders/${id}/refund`, { method: 'POST', body: { reason, ...(amount ? { amount } : {}) }, auth: A }),
   latestOrders: (since) => request('/admin/orders/latest', { query: { since }, auth: A }),
   assignRider: (id, riderId) => request(`/admin/orders/${id}/assign`, { method: 'PATCH', body: { riderId }, auth: A }),
   // Riders

@@ -1,7 +1,7 @@
-import { Navigate, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
+import { Navigate, useNavigate } from 'react-router-dom';
 import Logo from '../components/Logo';
-import OtpLogin from '../components/OtpLogin';
+import StaffLogin from '../components/StaffLogin';
 import { useAuth } from '../context/AuthContext';
 
 export default function AdminLogin() {
@@ -12,10 +12,9 @@ export default function AdminLogin() {
   if (isAdmin) return <Navigate to="/admin" replace />;
 
   function onVerified(data) {
-    const role = data?.user?.role;
-    // If the backend sends a role, only let admins in
-    if (role && !['admin', 'superadmin', 'staff'].includes(role)) {
-      setError('This number isn’t an admin account. Use the seeded admin mobile (default 9999999999).');
+    // Riders also use username login — keep them out of the admin panel
+    if (data?.user?.role !== 'admin') {
+      setError('This is a rider account. Riders log in at /rider.');
       return;
     }
     saveLogin('admin', data);
@@ -28,8 +27,9 @@ export default function AdminLogin() {
         <Logo to="/admin/login" sub="Store admin" />
         <h1>Admin log in</h1>
         <p className="muted">Manage products, prices, coupons and orders.</p>
-        <OtpLogin askName={false} onVerified={onVerified} defaultMobile="9999999999" />
+        <StaffLogin onVerified={onVerified} />
         {error && <p className="form-error">{error}</p>}
+        <p className="muted small">Forgot the password? Run <code>npm run admin:set-password -- &lt;username&gt;</code> on the server.</p>
       </div>
     </div>
   );

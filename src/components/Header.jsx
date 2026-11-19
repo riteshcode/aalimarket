@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { Search, ShoppingBag, Heart, User, ArrowLeft } from 'lucide-react';
 import Logo from './Logo';
+import LocationPicker from './LocationPicker';
 import { useShop } from '../context/ShopContext';
 import { useLang } from '../context/LangContext';
 import { useAuth } from '../context/AuthContext';
@@ -72,6 +73,7 @@ export default function Header() {
     <header className={`header ${searching ? 'header--searching' : ''}`}>
       <div className="header__row container">
         <Logo />
+        <LocationPicker />
 
         <form className="search" onSubmit={onSearch} role="search">
           <button type="button" className="search__back" onClick={closeSearch} aria-label={t('Close search')}>

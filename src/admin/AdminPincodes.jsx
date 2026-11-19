@@ -16,6 +16,8 @@ function PincodeForm({ area, onSaved, onCancel }) {
     // blank = use the store-wide delivery fee
     deliveryFee: area?.deliveryFee !== null && area?.deliveryFee !== undefined ? toRupees(area.deliveryFee) : '',
     etaDays: area?.etaDays ?? 1,
+    // blank = no quick delivery; the day ETA is used
+    etaMinutes: area?.etaMinutes ? String(area.etaMinutes) : '',
     isActive: area?.isActive ?? true,
   });
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
@@ -28,6 +30,7 @@ function PincodeForm({ area, onSaved, onCancel }) {
       areaName: form.areaName,
       deliveryFee: form.deliveryFee === '' ? null : toPaise(form.deliveryFee),
       etaDays: Number(form.etaDays),
+      etaMinutes: form.etaMinutes === '' ? null : Number(form.etaMinutes),
       isActive: form.isActive,
     };
     try {
@@ -51,6 +54,10 @@ function PincodeForm({ area, onSaved, onCancel }) {
       <label className="field">
         <span className="field__label">Delivery in (days) <em>0 = same day</em></span>
         <input type="number" min="0" max="30" value={form.etaDays} onChange={(e) => set('etaDays', e.target.value)} required />
+      </label>
+      <label className="field field--full">
+        <span className="field__label">Quick delivery in minutes <em>optional, 5–1440 (shows “⚡ 30 minutes” to customers)</em></span>
+        <input type="number" min="5" max="1440" value={form.etaMinutes} onChange={(e) => set('etaMinutes', e.target.value)} placeholder="e.g. 30" />
       </label>
       <BilingualInput label="Area name" required value={form.areaName} onChange={(v) => set('areaName', v)} />
       <label className="field field--full">
@@ -129,7 +136,9 @@ export default function AdminPincodes() {
                   <td><strong>{a.pincode}</strong></td>
                   <td>{a.areaName?.en}<span className="muted small" lang="hi">{a.areaName?.hi}</span></td>
                   <td>{a.deliveryFee === null ? <span className="muted">Store fee</span> : money(a.deliveryFee)}</td>
-                  <td>{a.etaDays === 0 ? 'Same day' : `${a.etaDays} day${a.etaDays > 1 ? 's' : ''}`}</td>
+                  <td>
+                    {a.etaMinutes ? <strong>⚡ {a.etaMinutes} min</strong> : a.etaDays === 0 ? 'Same day' : `${a.etaDays} day${a.etaDays > 1 ? 's' : ''}`}
+                  </td>
                   <td><Toggle checked={a.isActive} onChange={() => toggle(a)} /></td>
                   <td className="table__actions">
                     <button className="icon-btn icon-btn--sm" onClick={() => setEditing(a)} aria-label="Edit"><Pencil size={16} /></button>

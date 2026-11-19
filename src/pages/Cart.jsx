@@ -8,6 +8,7 @@ import { money } from '../lib/format';
 import QtyStepper from '../components/QtyStepper';
 import ProductImage from '../components/ProductImage';
 import { EmptyState } from '../components/States';
+import OffersList from '../components/OffersList';
 
 export function BillSummary({ cart }) {
   const mrpSaving = cart.mrpTotal > cart.subtotal ? cart.mrpTotal - cart.subtotal : 0;
@@ -151,6 +152,8 @@ export default function Cart() {
             )}
             {cart.couponError && <p className="form-error small">{cart.couponError.message || cart.couponError}</p>}
           </div>
+
+          <OffersList subtotal={cart.subtotal} />
 
           <div className="card">
             <CartNotices cart={cart} settings={settings} />

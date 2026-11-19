@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Package, ChevronRight } from 'lucide-react';
 import { orderApi } from '../api/endpoints';
@@ -15,8 +16,27 @@ export function StatusPill({ status, raw }) {
 
 export default function Orders() {
   const { t } = useLang();
-  const { data, loading, error, reload } = useFetch(() => orderApi.list(1), []);
-  const orders = asList(data);
+  const { data, meta, loading, error, reload } = useFetch(() => orderApi.list(1), []);
+  // Older orders, loaded 20 at a time with "Show older orders"
+  const [older, setOlder] = useState([]);
+  const [page, setPage] = useState(1);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const orders = [...asList(data), ...older];
+  const hasMore = page < (meta?.pages || 1);
+
+  async function loadMore() {
+    setLoadingMore(true);
+    try {
+      const next = page + 1;
+      const res = await orderApi.list(next);
+      setOlder((list) => [...list, ...asList(res.data)]);
+      setPage(next);
+    } catch {
+      // keep what we have; the button stays so they can try again
+    } finally {
+      setLoadingMore(false);
+    }
+  }
 
   return (
     <div className="page container narrow">
@@ -48,6 +68,13 @@ export default function Orders() {
           );
         })}
       </div>
+      {hasMore && (
+        <div className="load-more">
+          <button className="btn btn--ghost" onClick={loadMore} disabled={loadingMore}>
+            {loadingMore ? t('Loading…') : t('Show older orders')}
+          </button>
+        </div>
+      )}
     </div>
   );
 }

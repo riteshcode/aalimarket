@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Navigate } from 'react-router-dom';
-import { Phone, Navigation, MessageSquareText, LogOut, Banknote, CheckCircle2, ChevronDown, RefreshCw } from 'lucide-react';
+import { Phone, Navigation, MessageSquareText, LogOut, Banknote, CheckCircle2, ChevronDown, RefreshCw, KeyRound, X } from 'lucide-react';
 import Logo from '../components/Logo';
 import { riderApi } from '../api/endpoints';
 import { useFetch } from '../lib/useFetch';
@@ -12,6 +12,7 @@ import { Spinner, ErrorState } from '../components/States';
 import { StatusPill } from '../pages/Orders';
 import RiderInstall from './RiderInstall';
 import RiderAlerts from './RiderAlerts';
+import ChangePasswordForm from '../components/ChangePasswordForm';
 
 function mapsLink(addr) {
   if (addr.location) return `https://www.google.com/maps/dir/?api=1&destination=${addr.location.lat},${addr.location.lng}`;
@@ -166,6 +167,8 @@ export default function RiderApp() {
   const { isRider, rider, logout } = useAuth();
   const { t, lang, setLang } = useLang();
   const [tab, setTab] = useState('active');
+  const [changingPassword, setChangingPassword] = useState(false);
+  const toast = useToast();
 
   // Active = everything not finished; Done = delivered
   const { data, loading, error, reload } = useFetch(
@@ -200,6 +203,7 @@ export default function RiderApp() {
             <span className={lang === 'en' ? 'is-on' : ''}>EN</span>
             <span className={lang === 'hi' ? 'is-on' : ''}>हिं</span>
           </button>
+          <button className="icon-btn icon-btn--sm" onClick={() => setChangingPassword(true)} aria-label={t('Change password')}><KeyRound size={16} /></button>
           <button className="icon-btn icon-btn--sm" onClick={() => logout('rider')} aria-label={t('Log out')}><LogOut size={16} /></button>
         </div>
       </header>
@@ -209,6 +213,36 @@ export default function RiderApp() {
         <button className={tab === 'done' ? 'is-on' : ''} onClick={() => setTab('done')}>{t('Delivered')}</button>
         <button className="icon-btn icon-btn--sm" onClick={reload} aria-label={t('Refresh')}><RefreshCw size={16} /></button>
       </div>
+
+      {changingPassword && (
+        <div className="sheet" role="dialog" aria-modal="true" aria-label={t('Change password')}>
+          <div className="sheet__backdrop" onClick={() => setChangingPassword(false)} />
+          <div className="sheet__panel loc-sheet">
+            <span className="sheet__handle" aria-hidden="true" />
+            <div className="variant-sheet__head">
+              <h2>{t('Change password')}</h2>
+              <button className="icon-btn icon-btn--sm" onClick={() => setChangingPassword(false)} aria-label={t('Close')}><X size={16} /></button>
+            </div>
+            <ChangePasswordForm
+              kind="rider"
+              onDone={() => {
+                setChangingPassword(false);
+                toast.success(t('Password changed'));
+              }}
+              labels={{
+                current: t('Current password'),
+                next: t('New password'),
+                hint: t('At least 8 characters, with a letter and a number'),
+                confirm: t('Repeat new password'),
+                mismatch: t('The new passwords don’t match.'),
+                weak: t('Use at least 8 characters with a letter and a number.'),
+                save: t('Change password'),
+                saving: t('Saving…'),
+              }}
+            />
+          </div>
+        </div>
+      )}
 
       <main className="rider__list">
         <RiderInstall />

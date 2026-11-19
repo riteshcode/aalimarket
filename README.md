@@ -16,7 +16,7 @@ npm run dev
 ```
 
 - Store: http://localhost:5173
-- Admin: http://localhost:5173/admin  (seeded admin mobile: 9999999999)
+- Admin: http://localhost:5173/admin  (username + password: backend `.env` me `SEED_ADMIN_USERNAME` / `SEED_ADMIN_PASSWORD`)
 - OTP backend ke console me print hota hai (SMS_PROVIDER=console).
 - Same WiFi par mobile se kholne ke liye terminal me dikhne wala `Network:` URL use karo.
 
@@ -71,7 +71,7 @@ src/
 
 ## Rider app
 
-Delivery partners open `/rider` on their phone and log in with OTP (store adds them from Admin → Riders).
+Delivery partners open `/rider` on their phone and log in with the username + password the store sets in Admin → Riders (customers still use OTP).
 They see their assigned orders, call the customer, open Google Maps (exact pin if the customer shared location),
 tap **Start delivery**, and finish with the customer's 4-digit OTP + cash collected (COD). 5 wrong OTPs lock the
 order — admin can then mark it delivered from the Orders page.

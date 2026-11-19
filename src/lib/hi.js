@@ -344,6 +344,57 @@ const HI = {
   'Get a notification when the store gives you an order.': 'दुकान से ऑर्डर मिलने पर नोटिफ़िकेशन पाएँ।',
   'Alerts on. You’ll hear about every new delivery.': 'अलर्ट चालू। हर नई डिलीवरी की सूचना मिलेगी।',
   'Close search': 'खोज बंद करें',
+
+  // Delivery location (header)
+  '{n} minutes': '{n} मिनट',
+  'Delivery today': 'आज डिलीवरी',
+  'Delivery tomorrow': 'कल डिलीवरी',
+  'In {n} days': '{n} दिन में',
+  'Not delivering here': 'यहाँ डिलीवरी नहीं',
+  'Delivering to': 'डिलीवरी यहाँ',
+  'Set your location': 'अपनी लोकेशन चुनें',
+  'Change delivery location': 'डिलीवरी की जगह बदलें',
+  'Choose delivery location': 'डिलीवरी की जगह चुनें',
+  'Using GPS': 'GPS से',
+  'Enter pincode': 'पिनकोड डालें',
+  'Enter a 6-digit pincode': '6 अंकों का पिनकोड डालें',
+  Check: 'जाँचें',
+  'Couldn’t find your area. Please enter your pincode.': 'आपका इलाका नहीं मिला। कृपया पिनकोड डालें।',
+
+  // Share, order again, older orders
+  Share: 'शेयर करें',
+  'Order again': 'फिर से ऑर्डर करें',
+  'Add all': 'सब जोड़ें',
+  'Show older orders': 'पुराने ऑर्डर दिखाएँ',
+
+  // Rider login + password
+  'Use the username and password the store gave you.': 'दुकान से मिला यूज़रनेम और पासवर्ड डालें।',
+  'This account isn’t a delivery partner. Ask the store for your rider login.': 'यह डिलीवरी पार्टनर का अकाउंट नहीं है। दुकान से राइडर लॉगिन माँगें।',
+  'Forgot your password? Ask the store to reset it.': 'पासवर्ड भूल गए? दुकान से नया पासवर्ड बनवाएँ।',
+  Username: 'यूज़रनेम',
+  Password: 'पासवर्ड',
+  'Show password': 'पासवर्ड दिखाएँ',
+  'Locked. Try again in {m} minutes.': 'अकाउंट बंद है। {m} मिनट बाद फिर कोशिश करें।',
+  'Change password': 'पासवर्ड बदलें',
+  'Password changed': 'पासवर्ड बदल गया',
+  'Current password': 'अभी का पासवर्ड',
+  'New password': 'नया पासवर्ड',
+  'At least 8 characters, with a letter and a number': 'कम से कम 8 अक्षर, एक अक्षर और एक अंक के साथ',
+  'Repeat new password': 'नया पासवर्ड दोबारा डालें',
+  'The new passwords don’t match.': 'नए पासवर्ड मेल नहीं खाते।',
+  'Use at least 8 characters with a letter and a number.': 'कम से कम 8 अक्षर रखें, एक अक्षर और एक अंक के साथ।',
+
+  // Refunds
+  'Refund of {amount} is on its way. It usually reaches you in 5–7 working days.': '{amount} का रिफ़ंड आ रहा है। आमतौर पर 5–7 कामकाजी दिन लगते हैं।',
+  '{amount} refunded to your original payment method on {date}.': '{date} को {amount} आपके पेमेंट के तरीके में वापस भेज दिए गए।',
+  'Your refund is taking longer than usual. The store will try again. Contact us if you need help.': 'रिफ़ंड में सामान्य से ज़्यादा समय लग रहा है। दुकान फिर कोशिश करेगी। मदद के लिए संपर्क करें।',
+
+  // Offers
+  'Offers for you': 'आपके लिए ऑफ़र',
+  'Flat {amount} off': '{amount} की सीधी छूट',
+  '{p}% off, up to {amount}': '{p}% छूट, {amount} तक',
+  '{p}% off': '{p}% छूट',
+  'Add {amount} more to use this': 'इसके लिए {amount} का और सामान जोड़ें',
 };
 
 export default HI;

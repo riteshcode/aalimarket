@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Search, Phone, MapPin, Printer, Bike, MessageSquareText } from 'lucide-react';
+import { Search, Phone, MapPin, Printer, Bike, MessageSquareText, Undo2 } from 'lucide-react';
 import { adminApi } from '../api/endpoints';
 import { useFetch } from '../lib/useFetch';
 import { useLang } from '../context/LangContext';
 import { useToast } from '../context/ToastContext';
-import { asList, getId, money, formatDate, ORDER_STATUSES, STATUS_LABELS, PAYMENT_LABELS } from '../lib/format';
+import { asList, getId, money, formatDate, toPaise, ORDER_STATUSES, STATUS_LABELS, PAYMENT_LABELS } from '../lib/format';
 import { Spinner, ErrorState } from '../components/States';
 import ProductImage from '../components/ProductImage';
 import { StatusPill } from '../pages/Orders';
@@ -13,6 +13,86 @@ import { Drawer } from './AdminUi';
 
 const FLOW = ['placed', 'confirmed', 'packed', 'shipped', 'out_for_delivery', 'delivered'];
 const nextStatus = (s) => FLOW[FLOW.indexOf(s) + 1] || s;
+
+const REFUND_PILL = { pending: 'pill--packed', processed: 'pill--delivered', failed: 'pill--cancelled' };
+
+// Refund history + "Refund" form for paid online orders (e.g. an item was missing)
+function RefundSection({ order, onRefunded }) {
+  const toast = useToast();
+  const [open, setOpen] = useState(false);
+  const [amount, setAmount] = useState('');
+  const [reason, setReason] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  const refunds = order.refunds || [];
+  const reserved = refunds.filter((r) => r.status !== 'failed').reduce((s, r) => s + r.amount, 0);
+  const maxRefundable = Math.max(0, order.pricing.total - reserved);
+  const canRefund = order.paymentMethod !== 'cod' && order.paymentStatus === 'paid' && maxRefundable > 0;
+
+  if (!canRefund && refunds.length === 0) return null;
+
+  async function submit(e) {
+    e.preventDefault();
+    const paise = amount ? toPaise(amount) : undefined; // blank = everything still refundable
+    if (paise && paise > maxRefundable) return toast.error(`At most ${money(maxRefundable)} can be refunded.`);
+    if (!window.confirm(`Refund ${money(paise || maxRefundable)} to the customer? This can’t be undone.`)) return;
+    setBusy(true);
+    try {
+      await adminApi.refundOrder(getId(order), paise, reason.trim());
+      toast.success('Refund started');
+      setOpen(false);
+      setAmount('');
+      setReason('');
+      onRefunded();
+    } catch (err) {
+      toast.error(err.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <section className="card refund-admin">
+      <div className="card__head">
+        <h3 className="card__title"><Undo2 size={18} /> Refunds</h3>
+        {canRefund && !open && <button className="btn btn--ghost btn--sm" onClick={() => setOpen(true)}>Refund</button>}
+      </div>
+
+      {refunds.length > 0 && (
+        <ul className="history">
+          {refunds.map((r) => (
+            <li key={r.id}>
+              <strong>{money(r.amount)}</strong> <span className={`pill ${REFUND_PILL[r.status]}`}>{r.status}</span>
+              <span className="muted small"> {formatDate(r.createdAt, true)}{r.source === 'cancel' ? ', on cancel' : r.source === 'gateway' ? ', from Razorpay dashboard' : ''}</span>
+              {r.reason && <p className="muted small">{r.reason}</p>}
+              {r.failureReason && <p className="form-error small">{r.failureReason}</p>}
+            </li>
+          ))}
+        </ul>
+      )}
+      {order.refundStatus === 'failed' && canRefund && (
+        <p className="form-error small">The last refund failed. Use “Refund” to try again.</p>
+      )}
+
+      {open && (
+        <form className="form-grid" onSubmit={submit}>
+          <label className="field">
+            <span className="field__label">Amount (₹) <em>blank = {money(maxRefundable)}</em></span>
+            <input type="number" min="1" step="0.01" max={maxRefundable / 100} value={amount} onChange={(e) => setAmount(e.target.value)} />
+          </label>
+          <label className="field">
+            <span className="field__label">Reason</span>
+            <input value={reason} onChange={(e) => setReason(e.target.value)} placeholder="One item was missing" maxLength={200} required />
+          </label>
+          <div className="row-end field--full">
+            <button type="button" className="btn btn--ghost btn--sm" onClick={() => setOpen(false)}>Cancel</button>
+            <button className="btn btn--danger btn--sm" disabled={busy}>{busy ? 'Refunding…' : 'Refund'}</button>
+          </div>
+        </form>
+      )}
+    </section>
+  );
+}
 
 function OrderDetail({ orderId, onChanged }) {
   const { tr } = useLang();
@@ -55,6 +135,13 @@ function OrderDetail({ orderId, onChanged }) {
 
   async function updateStatus(e) {
     e.preventDefault();
+    if (chosen === 'cancelled') {
+      const paidOnline = order.paymentMethod !== 'cod' && order.paymentStatus === 'paid';
+      const msg = paidOnline
+        ? 'Cancel this order? Stock goes back and the customer is refunded online automatically.'
+        : 'Cancel this order? Stock goes back. This can’t be reopened.';
+      if (!window.confirm(msg)) return;
+    }
     setSaving(true);
     try {
       await adminApi.updateOrderStatus(orderId, chosen, note || undefined);
@@ -163,6 +250,8 @@ function OrderDetail({ orderId, onChanged }) {
           <strong>{money(pricing.total)}</strong>
         </div>
       </section>
+
+      <RefundSection order={order} onRefunded={() => { reload(); onChanged(); }} />
 
       <section>
         <h3 className="card__title">History</h3>

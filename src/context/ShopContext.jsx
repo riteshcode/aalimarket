@@ -5,6 +5,7 @@ import { asList, getId, normalizeCart } from '../lib/format';
 import { useAuth } from './AuthContext';
 import { useToast } from './ToastContext';
 import { useLang } from './LangContext';
+import { useLocationPref } from './LocationContext';
 
 const ShopContext = createContext(null);
 
@@ -15,6 +16,9 @@ export function ShopProvider({ children }) {
   const { isLoggedIn } = useAuth();
   const toast = useToast();
   const { t } = useLang();
+  const { location: deliveryLocation } = useLocationPref();
+  // Cart totals use the chosen area's delivery fee (only when we deliver there)
+  const cartPincode = deliveryLocation?.serviceable ? deliveryLocation.pincode : undefined;
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -30,6 +34,11 @@ export function ShopProvider({ children }) {
   }, []);
 
   useEffect(() => {
+    if (isLoggedIn) loadCart();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cartPincode]);
+
+  useEffect(() => {
     if (isLoggedIn) {
       loadCart();
       loadWishlist();
@@ -38,11 +47,12 @@ export function ShopProvider({ children }) {
       setWishlistIds(new Set());
       setWishlistReady(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoggedIn]);
 
   async function loadCart() {
     try {
-      const { data } = await cartApi.get();
+      const { data } = await cartApi.get(cartPincode);
       setCart(normalizeCart(data));
     } catch {
       setCart(EMPTY_CART);

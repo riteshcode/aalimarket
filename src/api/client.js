@@ -61,6 +61,17 @@ const ERROR_MESSAGES = {
   VARIANT_REQUIRED: 'Please choose an option first.',
   VARIANT_NOT_FOUND: 'This option isn’t available any more.',
   REVIEW_ALREADY_EXISTS: 'You’ve already reviewed this product.',
+  INVALID_CREDENTIALS: 'Incorrect username or password.',
+  ACCOUNT_LOCKED: 'Too many wrong passwords. The account is locked for a few minutes.',
+  RATE_LIMITED: 'Too many tries. Please wait a few minutes and try again.',
+  USE_PASSWORD_LOGIN: 'This is a staff number. Please use the admin or rider login with your username.',
+  INVALID_CURRENT_PASSWORD: 'Your current password is wrong.',
+  USERNAME_TAKEN: 'This username is already taken. Try another.',
+  REFUND_AMOUNT_EXCEEDED: 'That’s more than can still be refunded on this order.',
+  REFUND_NOT_ALLOWED: 'This order can’t be refunded online (cash order, unpaid, or already refunded).',
+  REFUND_PROVIDER_ERROR: 'The payment gateway didn’t accept the refund. Try again in a little while.',
+  GEO_NOT_FOUND: 'Couldn’t find your area. Please enter your pincode.',
+  INVALID_ORDER_STATE: 'This order can’t be changed any more.',
   MOBILE_ALREADY_REGISTERED: 'This mobile number already has an account. Use a different number for the rider.',
 };
 

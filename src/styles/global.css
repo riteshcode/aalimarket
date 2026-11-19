@@ -857,3 +857,77 @@ body.has-order-bar .toast-stack { bottom: calc(var(--nav-h) + 86px + env(safe-ar
   .filters { flex-wrap: nowrap; }
   .filters .chip-scroll { scroll-padding-inline: 0; }
 }
+
+/* ---------- Delivery location pill (header) ---------- */
+.loc-pill {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 0; min-width: 0;
+  background: none; border: 0; padding: 2px 0; color: #fff; text-align: left; line-height: 1.2;
+}
+.loc-pill__eta { display: inline-flex; align-items: center; gap: 3px; font-family: var(--font-display); font-weight: 800; font-size: 1rem; }
+.loc-pill__eta svg { color: var(--haldi); fill: var(--haldi); }
+.loc-pill__eta.is-no { color: #ffb4ac; font-size: 0.9rem; }
+.loc-pill__place { display: inline-flex; align-items: center; gap: 2px; font-size: 0.8rem; opacity: 0.85; max-width: 46vw; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.loc-pill__place svg { flex: none; }
+@media (max-width: 767px) {
+  /* Phones: logo icon + location pill, like quick-commerce apps */
+  .header .logo__text { display: none; }
+  .header--searching .loc-pill { display: none; }
+}
+@media (min-width: 768px) {
+  .loc-pill { padding: 4px 12px; border-left: 1px solid rgba(255, 255, 255, 0.25); max-width: 240px; }
+  .loc-pill__place { max-width: 200px; }
+}
+
+.loc-sheet { align-items: stretch; text-align: left; gap: 14px; }
+.loc-sheet .sheet__handle { align-self: center; }
+.loc-current {
+  display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: var(--r-md);
+  border: 1.5px solid var(--indigo); background: var(--indigo-soft); color: var(--indigo); text-align: left;
+}
+.loc-current span { display: flex; flex-direction: column; }
+.loc-current small { color: var(--muted); }
+.loc-pincode { display: flex; gap: 8px; }
+.loc-pincode input { flex: 1; height: 44px; padding: 0 14px; border-radius: var(--r-md); border: 1.5px solid var(--line); font-size: 1rem; letter-spacing: 0.08em; }
+.loc-pincode input:focus { border-color: var(--indigo); outline: none; }
+.loc-pincode .btn { height: 44px; }
+.loc-saved { display: grid; gap: 8px; max-height: 40vh; overflow-y: auto; }
+.loc-saved__item { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: var(--r-md); border: 1.5px solid var(--line); background: var(--surface); text-align: left; }
+.loc-saved__item > svg:first-child { color: var(--muted); flex: none; }
+.loc-saved__item span { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.loc-saved__item small { color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.loc-saved__item.is-on { border-color: var(--mint); background: var(--mint-soft); }
+.loc-saved__item.is-on > svg:last-child { color: var(--mint); }
+
+/* ---------- Order again (home) ---------- */
+.order-again { display: flex; align-items: center; gap: 12px; padding: 12px; }
+.order-again__items { display: flex; }
+.order-again__img, .order-again__more {
+  width: 44px; height: 44px; border-radius: 50%; border: 2px solid var(--surface); background: #fff;
+  overflow: hidden; margin-left: -10px; box-shadow: 0 0 0 1px var(--line); display: grid; place-items: center; flex: none;
+}
+.order-again__items > :first-child { margin-left: 0; }
+.order-again__img img, .order-again__img .img-placeholder { width: 100%; height: 100%; object-fit: contain; padding: 4px; }
+.order-again__img .img-placeholder svg { width: 18px; }
+.order-again__more { background: var(--indigo-soft); color: var(--indigo); font-weight: 700; font-size: 0.8rem; }
+.order-again__info { flex: 1; min-width: 0; display: flex; flex-direction: column; line-height: 1.3; }
+
+/* ---------- Staff login ---------- */
+.password-input { display: flex; align-items: center; border: 1.5px solid var(--line); border-radius: var(--r-md); background: var(--surface); }
+.password-input:focus-within { border-color: var(--indigo); box-shadow: 0 0 0 3px var(--indigo-soft); }
+.field .password-input input { border: 0; box-shadow: none; flex: 1; min-width: 0; }
+.password-input button { border: 0; background: none; color: var(--muted); padding: 0 12px; height: 44px; display: grid; place-items: center; }
+
+/* ---------- Refund status (customer order page) ---------- */
+.refund-card { display: flex; gap: 12px; align-items: flex-start; padding: 14px 16px; border-radius: var(--r-lg); font-weight: 500; }
+.refund-card svg { flex: none; margin-top: 2px; }
+.refund-card--pending { background: var(--haldi-soft); color: #6b4c00; }
+.refund-card--done { background: var(--mint-soft); color: var(--mint); }
+.refund-card--failed { background: var(--danger-soft); color: var(--danger); }
+
+/* ---------- Offers in cart ---------- */
+.offers ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.offers li { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding-top: 10px; border-top: 1px dashed var(--line); }
+.offers li:first-child { border-top: 0; padding-top: 0; }
+.offers li > div { display: grid; gap: 2px; min-width: 0; }
+.offers li p { font-size: 0.9rem; }
+.offers .code { width: fit-content; font-family: var(--font-display); font-weight: 700; letter-spacing: 0.04em; background: var(--haldi-soft); padding: 1px 8px; border-radius: 6px; font-size: 0.85rem; }

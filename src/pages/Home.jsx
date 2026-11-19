@@ -7,6 +7,7 @@ import { asList, getId, imageUrl } from '../lib/format';
 import ProductCard from '../components/ProductCard';
 import { ProductGridSkeleton, ErrorState } from '../components/States';
 import CategoryChip from '../components/CategoryChip';
+import OrderAgain from '../components/OrderAgain';
 
 // Banner links use slugs, but GET /products filters by category id — map them to app routes
 function bannerRoute(link, categories) {
@@ -124,6 +125,7 @@ export default function Home() {
         </section>
       )}
 
+      <OrderAgain />
       <Shelf title="Biggest savings today" sort="discount" />
       <Shelf title="Most bought" sort="popular" />
       <Shelf title="New in store" sort="newest" />

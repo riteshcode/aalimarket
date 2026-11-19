@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import Logo from '../components/Logo';
-import OtpLogin from '../components/OtpLogin';
+import StaffLogin from '../components/StaffLogin';
 import { useAuth } from '../context/AuthContext';
 import { useLang } from '../context/LangContext';
 import RiderInstall from './RiderInstall';
@@ -16,7 +16,7 @@ export default function RiderLogin() {
 
   function onVerified(data) {
     if (data?.user?.role !== 'rider') {
-      setError(t('This number isn’t registered as a delivery partner. Ask the store to add you.'));
+      setError(t('This account isn’t a delivery partner. Ask the store for your rider login.'));
       return;
     }
     saveLogin('rider', data);
@@ -28,8 +28,19 @@ export default function RiderLogin() {
       <div className="auth__panel">
         <Logo to="/rider/login" sub={t('Delivery partner')} />
         <h1>{t('Rider log in')}</h1>
-        <p className="muted">{t('Log in with the mobile number the store registered for you.')}</p>
-        <OtpLogin askName={false} onVerified={onVerified} />
+        <p className="muted">{t('Use the username and password the store gave you.')}</p>
+        <StaffLogin
+          onVerified={onVerified}
+          labels={{
+            username: t('Username'),
+            password: t('Password'),
+            submit: t('Log in'),
+            busy: t('Checking…'),
+            show: t('Show password'),
+            lockedFor: t('Locked. Try again in {m} minutes.'),
+          }}
+        />
+        <p className="muted small">{t('Forgot your password? Ask the store to reset it.')}</p>
         {error && <p className="form-error">{error}</p>}
         <RiderInstall />
       </div>

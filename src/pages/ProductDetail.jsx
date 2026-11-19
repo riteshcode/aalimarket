@@ -12,6 +12,7 @@ import Price from '../components/Price';
 import QtyStepper from '../components/QtyStepper';
 import ProductImage from '../components/ProductImage';
 import ProductCard from '../components/ProductCard';
+import ShareButton from '../components/ShareButton';
 import { Spinner, ErrorState } from '../components/States';
 
 function Stars({ value, onChange }) {
@@ -239,6 +240,7 @@ export default function ProductDetail() {
             >
               <Heart size={20} />
             </button>
+            <ShareButton title={title} price={price} mrp={mrp} />
           </div>
 
           {stock > 0 && stock <= 10 && <p className="low-stock">{t('Only {n} left', { n: stock })}</p>}

@@ -5,7 +5,7 @@ import { useFetch } from '../lib/useFetch';
 import { useToast } from '../context/ToastContext';
 import { asList, getId, money, toPaise, toRupees, formatDate } from '../lib/format';
 import { Spinner, ErrorState } from '../components/States';
-import { Drawer, Toggle, ConfirmButton } from './AdminUi';
+import { Drawer, Toggle, ConfirmButton, BilingualInput } from './AdminUi';
 
 // <input type="datetime-local"> needs "YYYY-MM-DDTHH:mm" in local time
 function toLocalInput(value) {
@@ -21,6 +21,8 @@ function CouponForm({ coupon, onSaved, onCancel }) {
 
   const [form, setForm] = useState({
     code: coupon?.code || '',
+    // Optional text for the customer's "Offers for you" list
+    description: coupon?.description || { en: '', hi: '' },
     type: coupon?.type || 'percent',
     // flat: value is paise (shown in ₹). percent: value is whole %
     value: coupon ? (coupon.type === 'flat' ? toRupees(coupon.value) : coupon.value) : '',
@@ -37,8 +39,15 @@ function CouponForm({ coupon, onSaved, onCancel }) {
   async function submit(e) {
     e.preventDefault();
     setSaving(true);
+    const descEn = form.description.en?.trim();
+    const descHi = form.description.hi?.trim();
+    if ((descEn && !descHi) || (!descEn && descHi)) {
+      setSaving(false);
+      return toast.error('Write the offer text in both English and Hindi, or leave both empty.');
+    }
     const body = {
       code: form.code.toUpperCase().trim(),
+      description: descEn ? { en: descEn, hi: descHi } : null,
       type: form.type,
       value: form.type === 'flat' ? toPaise(form.value) : Number(form.value),
       minOrderValue: toPaise(form.minOrderValue),
@@ -108,6 +117,7 @@ function CouponForm({ coupon, onSaved, onCancel }) {
         <span className="field__label">Uses per shopper</span>
         <input type="number" min="1" value={form.perUserLimit} onChange={(e) => set('perUserLimit', e.target.value)} />
       </label>
+      <BilingualInput label="Offer text for customers (optional)" value={form.description} onChange={(v) => set('description', v)} />
       <div className="field--full"><Toggle checked={form.isActive} onChange={(v) => set('isActive', v)} label="Active" /></div>
       <div className="row-end field--full">
         <button type="button" className="btn btn--ghost" onClick={onCancel}>Cancel</button>

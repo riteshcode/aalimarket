@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, useSearchParams, Link, useNavigate } from 'react-router-dom';
-import { PartyPopper, KeyRound, Bell, RotateCcw, CreditCard, Banknote } from 'lucide-react';
+import { PartyPopper, KeyRound, Bell, RotateCcw, CreditCard, Banknote, Undo2 } from 'lucide-react';
 import { orderApi, paymentApi } from '../api/endpoints';
 import { collectPayment } from '../lib/payment';
 import { usePush } from '../lib/usePush';
@@ -54,6 +54,33 @@ function Timeline({ order }) {
         );
       })}
     </ol>
+  );
+}
+
+// Refund status for a cancelled / partly refunded online order
+function RefundInfo({ order }) {
+  const { t } = useLang();
+  const latest = order.refunds[order.refunds.length - 1];
+  const pendingAmount = order.refunds.filter((r) => r.status === 'pending').reduce((s, r) => s + r.amount, 0);
+
+  let tone = 'pending';
+  let text = t('Refund of {amount} is on its way. It usually reaches you in 5–7 working days.', { amount: money(pendingAmount || latest.amount) });
+  if (latest.status === 'processed') {
+    tone = 'done';
+    text = t('{amount} refunded to your original payment method on {date}.', {
+      amount: money(order.refundedAmount),
+      date: formatDate(order.refundedAt || latest.processedAt),
+    });
+  } else if (latest.status === 'failed') {
+    tone = 'failed';
+    text = t('Your refund is taking longer than usual. The store will try again. Contact us if you need help.');
+  }
+
+  return (
+    <div className={`refund-card refund-card--${tone}`}>
+      <Undo2 size={20} />
+      <p>{text}</p>
+    </div>
   );
 }
 
@@ -205,6 +232,8 @@ export default function OrderDetail() {
           </div>
         </div>
       )}
+
+      {order.refunds?.length > 0 && <RefundInfo order={order} />}
 
       {needsPayment && (
         <div className="card pay-again">
