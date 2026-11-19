@@ -13,6 +13,23 @@
     <title>Aali Market</title>
   </head>
   <body>
+    <script>
+      // Rider pages are their own installable app (public/rider.webmanifest)
+      if (location.pathname.indexOf('/rider') === 0) {
+        var set = function (selector, attr, value) {
+          var el = document.querySelector(selector);
+          if (el) el.setAttribute(attr, value);
+        };
+        set('link[rel="manifest"]', 'href', '/rider.webmanifest');
+        set('meta[name="theme-color"]', 'content', '#0B7A55');
+        set('link[rel="apple-touch-icon"]', 'href', '/icons/rider-apple-touch-icon.png');
+        var meta = document.createElement('meta');
+        meta.name = 'apple-mobile-web-app-title';
+        meta.content = 'Aali Rider';
+        document.head.appendChild(meta);
+        document.title = 'Aali Rider';
+      }
+    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>

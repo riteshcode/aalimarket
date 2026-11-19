@@ -12,7 +12,7 @@ export default defineConfig(({ mode }) => {
       VitePWA({
         registerType: 'autoUpdate',
         devOptions: { enabled: true },
-        includeAssets: ['favicon.svg', 'icons/apple-touch-icon.png'],
+        includeAssets: ['favicon.svg', 'icons/apple-touch-icon.png', 'rider.webmanifest', 'icons/rider-*.png'],
         manifest: {
           name: 'Aali Market',
           short_name: 'Aali Market',

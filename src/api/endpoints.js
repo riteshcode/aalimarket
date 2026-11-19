@@ -26,14 +26,20 @@ export const catalogApi = {
   related: (productId, limit = 10) => request(`/products/${productId}/related`, { query: { limit } }),
   reviews: (productId, page = 1) => request(`/products/${productId}/reviews`, { query: { page, limit: 20 } }),
   addReview: (productId, body) => request(`/products/${productId}/reviews`, { method: 'POST', body, auth: C }),
+  // The shopper's own review in any status (pending / approved / rejected), or null
+  myReview: (productId) => request(`/products/${productId}/reviews/mine`, { auth: C }),
 };
 
 export const cartApi = {
   // pincode (optional) previews that area's delivery fee
   get: (pincode) => request('/cart', { query: { pincode }, auth: C }),
-  addItem: (productId, qty) => request('/cart/items', { method: 'POST', body: { productId, qty }, auth: C }),
-  updateItem: (productId, qty) => request(`/cart/items/${productId}`, { method: 'PATCH', body: { qty }, auth: C }),
-  removeItem: (productId) => request(`/cart/items/${productId}`, { method: 'DELETE', auth: C }),
+  // A cart line = product + variant. variantId is required for products that have variants.
+  addItem: (productId, qty, variantId) =>
+    request('/cart/items', { method: 'POST', body: { productId, qty, ...(variantId ? { variantId } : {}) }, auth: C }),
+  updateItem: (productId, qty, variantId) =>
+    request(`/cart/items/${productId}`, { method: 'PATCH', body: { qty }, query: { variantId }, auth: C }),
+  removeItem: (productId, variantId) =>
+    request(`/cart/items/${productId}`, { method: 'DELETE', query: { variantId }, auth: C }),
   applyCoupon: (code) => request('/cart/coupon', { method: 'POST', body: { code }, auth: C }),
   removeCoupon: () => request('/cart/coupon', { method: 'DELETE', auth: C }),
   clear: () => request('/cart', { method: 'DELETE', auth: C }),
@@ -72,10 +78,11 @@ export const paymentApi = {
   verify: (body) => request('/payments/verify', { method: 'POST', body, auth: C }),
 };
 
+// kind = 'customer' (order updates) or 'rider' (new deliveries)
 export const pushApi = {
   publicKey: () => request('/push/vapid-public-key'),
-  subscribe: (subscription) => request('/me/push-subscriptions', { method: 'POST', body: subscription, auth: C }),
-  unsubscribe: (endpoint) => request('/me/push-subscriptions', { method: 'DELETE', body: { endpoint }, auth: C }),
+  subscribe: (subscription, kind = C) => request('/me/push-subscriptions', { method: 'POST', body: subscription, auth: kind }),
+  unsubscribe: (endpoint, kind = C) => request('/me/push-subscriptions', { method: 'DELETE', body: { endpoint }, auth: kind }),
 };
 
 export const riderApi = {
@@ -152,6 +159,9 @@ export const adminApi = {
   // Reviews
   reviews: (query) => request('/admin/reviews', { query, auth: A }),
   deleteReview: (id) => request(`/admin/reviews/${id}`, { method: 'DELETE', auth: A }),
+  // status: 'approved' | 'rejected' → { review, product: { id, ratingAvg, ratingCount } }
+  moderateReview: (id, status, note) =>
+    request(`/admin/reviews/${id}/status`, { method: 'PATCH', body: { status, ...(note ? { note } : {}) }, auth: A }),
   updateOrderStatus: (id, status, note) =>
     request(`/admin/orders/${id}/status`, { method: 'PATCH', body: { status, note }, auth: A }),
   // Uploads — field name "images" (max 6). Returns { urls: [...] } (absolute S3 URLs)

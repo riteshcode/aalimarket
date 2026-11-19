@@ -26,7 +26,7 @@ export default function AppPrompts() {
   const { isLoggedIn } = useAuth();
   const toast = useToast();
   const push = usePush();
-  const [installEvent, setInstallEvent] = useState(null);
+  const [installEvent, setInstallEvent] = useState(() => window.__aaliInstallPrompt || null);
   const [step, setStep] = useState(null); // null | 'install' | 'notify'
   const [ready, setReady] = useState(false);
 

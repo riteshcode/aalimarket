@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { ShoppingBag, IndianRupee, Clock, Bike, AlertTriangle, Users } from 'lucide-react';
+import { ShoppingBag, IndianRupee, Clock, Bike, AlertTriangle, Users, MessageSquare } from 'lucide-react';
 import { adminApi } from '../api/endpoints';
 import { useFetch } from '../lib/useFetch';
 import { asList, getId, money, formatDate, PAYMENT_LABELS } from '../lib/format';
@@ -20,6 +20,7 @@ export default function Dashboard() {
     { label: 'Out for delivery', value: s.outForDelivery, to: '/admin/orders?status=out_for_delivery', icon: Bike },
     { label: 'Low on stock', value: s.lowStockCount, to: '/admin/products?lowStock=true', icon: AlertTriangle },
     { label: 'Customers', value: s.totalCustomers, to: '/admin/customers', icon: Users },
+    { label: 'Reviews to approve', value: s.pendingReviews, to: '/admin/reviews', icon: MessageSquare, warn: s.pendingReviews > 0 },
   ];
 
   return (
@@ -27,8 +28,8 @@ export default function Dashboard() {
       <h1 className="admin-title">Overview</h1>
 
       <div className="tiles tiles--6">
-        {tiles.map(({ label, value, to, icon: Icon }) => (
-          <Link key={label} to={to} className="tile">
+        {tiles.map(({ label, value, to, icon: Icon, warn }) => (
+          <Link key={label} to={to} className={`tile ${warn ? 'tile--attention' : ''}`}>
             <Icon size={20} />
             <strong>{value ?? '–'}</strong>
             <span>{label}</span>

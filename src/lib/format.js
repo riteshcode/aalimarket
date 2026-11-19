@@ -87,3 +87,15 @@ export function normalizeCart(data) {
     couponError: data?.couponError || null,
   };
 }
+
+// ---- Product variants (Aata 1 kg / 5 kg / 10 kg) ----
+// Customers only receive active variants; admin gets all of them.
+export const hasVariants = (product) => Array.isArray(product?.variants) && product.variants.length > 0;
+
+export function defaultVariant(product) {
+  if (!hasVariants(product)) return null;
+  return product.variants.find((v) => v.isDefault) || product.variants[0];
+}
+
+// Variant photo if it has one, otherwise the product's
+export const variantImage = (product, variant) => variant?.images?.[0] || product?.images?.[0];

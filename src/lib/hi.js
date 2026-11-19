@@ -320,6 +320,29 @@ const HI = {
   '{n} orders on the way': '{n} ऑर्डर आ रहे हैं',
   'Tap to track': 'ट्रैक करने के लिए दबाएँ',
   Track: 'ट्रैक करें',
+
+  // Rider install
+  'Install the rider app': 'राइडर ऐप इंस्टॉल करें',
+  'Opens straight to your deliveries, like a normal app': 'सीधे आपकी डिलीवरी पर खुलेगा, आम ऐप की तरह',
+
+  // Product options (variants)
+  '+{n} more': '+{n} और',
+  '{n} in cart': 'कार्ट में {n}',
+  'Choose {option}': '{option} चुनें',
+  'an option': 'विकल्प',
+  Done: 'हो गया',
+  'No longer available. Please remove it.': 'अब उपलब्ध नहीं है। कृपया हटा दें।',
+
+  // Review approval
+  'Thanks! Your review will show after the store approves it.': 'धन्यवाद! दुकान की मंज़ूरी के बाद आपका रिव्यू दिखेगा।',
+  'Your review': 'आपका रिव्यू',
+  'Waiting for the store to approve it': 'दुकान की मंज़ूरी का इंतज़ार है',
+  'This review wasn’t approved': 'यह रिव्यू मंज़ूर नहीं हुआ',
+
+  // Rider alerts
+  'New delivery alerts': 'नई डिलीवरी के अलर्ट',
+  'Get a notification when the store gives you an order.': 'दुकान से ऑर्डर मिलने पर नोटिफ़िकेशन पाएँ।',
+  'Alerts on. You’ll hear about every new delivery.': 'अलर्ट चालू। हर नई डिलीवरी की सूचना मिलेगी।',
 };
 
 export default HI;

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Heart, Star, Truck, RotateCcw } from 'lucide-react';
 import { catalogApi } from '../api/endpoints';
@@ -7,7 +7,7 @@ import { useShop } from '../context/ShopContext';
 import { useLang } from '../context/LangContext';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
-import { asList, getId, formatDate, discountPercent } from '../lib/format';
+import { asList, getId, formatDate, discountPercent, hasVariants, defaultVariant, money } from '../lib/format';
 import Price from '../components/Price';
 import QtyStepper from '../components/QtyStepper';
 import ProductImage from '../components/ProductImage';
@@ -37,22 +37,29 @@ function Reviews({ productId }) {
   const { t } = useLang();
   const { isLoggedIn } = useAuth();
   const toast = useToast();
-  const { data, loading, reload } = useFetch(() => catalogApi.reviews(productId), [productId]);
+  const { data, loading } = useFetch(() => catalogApi.reviews(productId), [productId]);
   const reviews = asList(data);
   const [rating, setRating] = useState(5);
   const [comment, setComment] = useState('');
   const [saving, setSaving] = useState(false);
   const [open, setOpen] = useState(false);
+  // The shopper's own review (any status). One review per product, so if it exists we show it instead of the form.
+  const [mine, setMine] = useState(null);
+
+  useEffect(() => {
+    if (!isLoggedIn || !productId) return;
+    catalogApi.myReview(productId).then(({ data }) => setMine(data)).catch(() => {});
+  }, [isLoggedIn, productId]);
 
   async function submit(e) {
     e.preventDefault();
     setSaving(true);
     try {
-      await catalogApi.addReview(productId, { rating, comment });
-      toast.success(t('Review posted'));
+      const { data } = await catalogApi.addReview(productId, { rating, comment });
+      setMine(data); // starts as "pending" until the store approves it
+      toast.success(t('Thanks! Your review will show after the store approves it.'));
       setComment('');
       setOpen(false);
-      reload();
     } catch (err) {
       toast.error(err.message);
     } finally {
@@ -64,8 +71,21 @@ function Reviews({ productId }) {
     <section className="reviews">
       <div className="section-head">
         <h2>{t('Reviews')}</h2>
-        {isLoggedIn && !open && <button className="link-btn" onClick={() => setOpen(true)}>{t('Write a review')}</button>}
+        {isLoggedIn && !open && !mine && <button className="link-btn" onClick={() => setOpen(true)}>{t('Write a review')}</button>}
       </div>
+
+      {mine && mine.status !== 'approved' && (
+        <div className={`card my-review my-review--${mine.status}`}>
+          <div className="review__top">
+            <strong>{t('Your review')}</strong>
+            <Stars value={mine.rating} />
+          </div>
+          {mine.comment && <p>{mine.comment}</p>}
+          <span className="small">
+            {mine.status === 'pending' ? t('Waiting for the store to approve it') : t('This review wasn’t approved')}
+          </span>
+        </div>
+      )}
 
       {open && (
         <form className="card review-form" onSubmit={submit}>
@@ -105,10 +125,11 @@ function Reviews({ productId }) {
 export default function ProductDetail() {
   const { slug } = useParams();
   const { tr, t } = useLang();
-  const { qtyInCart, addToCart, setQty, busyId, wishlistIds, toggleWishlist } = useShop();
+  const { qtyInCart, addToCart, setQty, busyId, lineKey, wishlistIds, toggleWishlist } = useShop();
   const { data: product, loading, error, reload } = useFetch(() => catalogApi.product(slug), [slug]);
   const [activeImg, setActiveImg] = useState(0);
   const [pickQty, setPickQty] = useState(1);
+  const [variantId, setVariantId] = useState(null); // chosen option; null = the default one
 
   const id = getId(product);
   const related = useFetch(() => (id ? catalogApi.related(id, 10) : Promise.resolve({ data: [] })), [id]);
@@ -118,10 +139,26 @@ export default function ProductDetail() {
   if (!product) return null;
 
   const title = tr(product.title);
-  const images = product.images?.length ? product.images : [null];
-  const qty = qtyInCart(id);
-  const outOfStock = product.stock !== undefined && product.stock <= 0;
-  const off = discountPercent(product.mrp, product.price);
+  const withOptions = hasVariants(product);
+  // With options, price / stock / photo come from the chosen variant
+  const variant = withOptions ? product.variants.find((v) => v.id === variantId) || defaultVariant(product) : null;
+  const vId = variant?.id;
+  const price = variant ? variant.price : product.price;
+  const mrp = variant ? variant.mrp : product.mrp;
+  const stock = variant ? variant.stock : product.stock;
+  const unit = variant ? tr(variant.label) : product.unit;
+  const baseImages = product.images?.length ? product.images : [null];
+  const images = variant?.images?.length ? [...variant.images, ...product.images] : baseImages;
+  const qty = qtyInCart(id, vId);
+  const busy = busyId === lineKey(id, vId);
+  const outOfStock = stock !== undefined && stock <= 0;
+  const off = discountPercent(mrp, price);
+
+  function chooseVariant(v) {
+    setVariantId(v.id);
+    setPickQty(1);
+    setActiveImg(0);
+  }
   const relatedList = asList(related.data);
 
   return (
@@ -153,23 +190,44 @@ export default function ProductDetail() {
         <div className="pdp__info">
           {product.brand && <span className="pdp__brand">{product.brand}</span>}
           <h1 className="pdp__title">{title}</h1>
-          <span className="pdp__unit">{product.unit}</span>
+          <span className="pdp__unit">{unit}</span>
 
-          <Price price={product.price} mrp={product.mrp} size="lg" />
+          <Price price={price} mrp={mrp} size="lg" />
           <p className="muted small">{t('Inclusive of all taxes')}</p>
+
+          {withOptions && (
+            <div className="variant-picker">
+              <span className="field__label">{tr(product.optionName)}</span>
+              <div className="variant-chips" role="radiogroup" aria-label={tr(product.optionName)}>
+                {product.variants.map((v) => (
+                  <button
+                    key={v.id}
+                    role="radio"
+                    aria-checked={v.id === vId}
+                    className={`variant-chip ${v.id === vId ? 'is-on' : ''} ${v.inStock ? '' : 'is-oos'}`}
+                    onClick={() => chooseVariant(v)}
+                  >
+                    <strong>{tr(v.label)}</strong>
+                    <span>{v.inStock ? money(v.price) : t('Out of stock')}</span>
+                    {v.discountPercent > 0 && v.inStock && <em>{t('{off}% off', { off: v.discountPercent })}</em>}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div className="pdp__buy">
             {outOfStock ? (
               <span className="pcard__oos">{t('Out of stock')}</span>
             ) : qty > 0 ? (
               <>
-                <QtyStepper qty={qty} busy={busyId === id} max={product.stock} onChange={(n) => setQty(id, n)} />
+                <QtyStepper qty={qty} busy={busy} max={stock} onChange={(n) => setQty(id, n, vId)} />
                 <Link to="/cart" className="btn btn--primary btn--grow">{t('Go to cart')}</Link>
               </>
             ) : (
               <>
-                <QtyStepper qty={pickQty} max={product.stock} onChange={(n) => setPickQty(Math.max(1, n))} />
-                <button className="btn btn--primary btn--grow" disabled={busyId === id} onClick={() => addToCart(id, pickQty)}>
+                <QtyStepper qty={pickQty} max={stock} onChange={(n) => setPickQty(Math.max(1, n))} />
+                <button className="btn btn--primary btn--grow" disabled={busy} onClick={() => addToCart(id, pickQty, vId)}>
                   {t('Add to cart')}
                 </button>
               </>
@@ -183,7 +241,7 @@ export default function ProductDetail() {
             </button>
           </div>
 
-          {product.stock > 0 && product.stock <= 10 && <p className="low-stock">{t('Only {n} left', { n: product.stock })}</p>}
+          {stock > 0 && stock <= 10 && <p className="low-stock">{t('Only {n} left', { n: stock })}</p>}
 
           <ul className="pdp__perks">
             <li><Truck size={18} /> {t('Delivered from your local store')}</li>

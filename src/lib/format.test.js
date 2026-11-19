@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { money, toPaise, toRupees, discountPercent, pickLang, asList, normalizeCart, getId } from './format';
+import { money, toPaise, toRupees, discountPercent, pickLang, asList, normalizeCart, getId, hasVariants, defaultVariant, variantImage } from './format';
 
 describe('money (paise → ₹)', () => {
   it('shows whole rupees without decimals', () => {
@@ -90,5 +90,32 @@ describe('normalizeCart (GET /cart shape)', () => {
     const cart = normalizeCart(null);
     expect(cart.items).toEqual([]);
     expect(cart.total).toBe(0);
+  });
+});
+
+describe('product variants', () => {
+  // Shape from SAMPLE_RESPONSES.md (GET /products/:slug with variants)
+  const atta = {
+    images: ['atta.jpg'],
+    variants: [
+      { id: 'v1', label: { en: '1 kg', hi: '1 किलो' }, price: 5200, images: [], isDefault: true },
+      { id: 'v10', label: { en: '10 kg', hi: '10 किलो' }, price: 47000, images: ['atta-10kg.jpg'], isDefault: false },
+    ],
+  };
+
+  it('knows when a product has options', () => {
+    expect(hasVariants(atta)).toBe(true);
+    expect(hasVariants({ variants: [] })).toBe(false);
+    expect(hasVariants({})).toBe(false);
+  });
+
+  it('picks the default option', () => {
+    expect(defaultVariant(atta).id).toBe('v1');
+    expect(defaultVariant({ variants: [] })).toBe(null);
+  });
+
+  it('uses the option photo, else the product photo', () => {
+    expect(variantImage(atta, atta.variants[1])).toBe('atta-10kg.jpg');
+    expect(variantImage(atta, atta.variants[0])).toBe('atta.jpg');
   });
 });

@@ -149,7 +149,7 @@ export default function OrderDetail() {
       await loadCart();
       const skipped = data.skipped || [];
       if (skipped.length) {
-        const names = skipped.map((s) => tr(s.title)).join(', ');
+        const names = skipped.map((s) => (s.variantLabel ? `${tr(s.title)} (${tr(s.variantLabel)})` : tr(s.title))).join(', ');
         toast.error(t('Some items changed: {names}', { names }));
       } else {
         toast.success(t('Added to cart'));
@@ -240,7 +240,7 @@ export default function OrderDetail() {
               <span className="order-items__img"><ProductImage src={it.image} alt="" /></span>
               <div>
                 <span>{tr(it.title)}</span>
-                <span className="muted small">{it.unit} × {it.qty}</span>
+                <span className="muted small">{it.variantLabel ? tr(it.variantLabel) : it.unit} × {it.qty}</span>
               </div>
               <strong>{money(it.price * it.qty)}</strong>
             </li>

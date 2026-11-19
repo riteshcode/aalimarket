@@ -9,16 +9,18 @@ function base64UrlToBytes(base64Url) {
   return Uint8Array.from(raw, (char) => char.charCodeAt(0));
 }
 
-const OPT_OUT_KEY = 'aali.push.optOut';
-export const hasOptedOut = () => localStorage.getItem(OPT_OUT_KEY) === '1';
+// Remembered per app, so turning off rider alerts doesn't touch customer notifications
+const optOutKey = (kind) => (kind === 'rider' ? 'aali.push.optOut.rider' : 'aali.push.optOut');
+export const hasOptedOut = (kind = 'customer') => localStorage.getItem(optOutKey(kind)) === '1';
 
 const isSupported = () => 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
 
 /**
- * Order-update notifications for the logged-in shopper.
+ * Push notifications for the logged-in user.
+ *   kind = 'customer' → order updates, kind = 'rider' → new deliveries
  * iPhone: only works once the app is added to the Home Screen (iOS 16.4+).
  */
-export function usePush() {
+export function usePush(kind = 'customer') {
   const supported = isSupported();
   const [subscribed, setSubscribed] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -44,8 +46,8 @@ export function usePush() {
         (await reg.pushManager.getSubscription()) ||
         (await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: base64UrlToBytes(data.publicKey) }));
 
-      await pushApi.subscribe(sub.toJSON());
-      localStorage.removeItem(OPT_OUT_KEY);
+      await pushApi.subscribe(sub.toJSON(), kind);
+      localStorage.removeItem(optOutKey(kind));
       setSubscribed(true);
     } finally {
       setBusy(false);
@@ -58,10 +60,10 @@ export function usePush() {
       const reg = await navigator.serviceWorker.ready;
       const sub = await reg.pushManager.getSubscription();
       if (sub) {
-        await pushApi.unsubscribe(sub.endpoint).catch(() => {});
+        await pushApi.unsubscribe(sub.endpoint, kind).catch(() => {});
         await sub.unsubscribe();
       }
-      localStorage.setItem(OPT_OUT_KEY, '1');
+      localStorage.setItem(optOutKey(kind), '1');
       setSubscribed(false);
     } finally {
       setBusy(false);

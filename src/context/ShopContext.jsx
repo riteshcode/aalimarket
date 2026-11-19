@@ -84,16 +84,27 @@ export function ShopProvider({ children }) {
     }
   }
 
-  const qtyInCart = (productId) => cart.items.find((i) => i.productId === productId)?.qty || 0;
+  // A cart line is product + variant (variantId is null for products without options).
+  // lineKey is also what busyId holds, so only the tapped line shows a spinner.
+  const lineKey = (productId, variantId) => `${productId}:${variantId || ''}`;
+  const findLine = (productId, variantId) =>
+    cart.items.find((i) => i.productId === productId && (i.variantId || null) === (variantId || null));
 
-  const addToCart = (productId, qty = 1) =>
-    cartAction(productId, () => cartApi.addItem(productId, qty), t('Added to cart'));
+  const qtyInCart = (productId, variantId) => findLine(productId, variantId)?.qty || 0;
+  // All variants of one product together (for the "2 in cart" hint on a product card)
+  const qtyOfProduct = (productId) =>
+    cart.items.filter((i) => i.productId === productId).reduce((sum, i) => sum + i.qty, 0);
 
-  const setQty = (productId, qty) =>
-    cartAction(productId, () => (qty <= 0 ? cartApi.removeItem(productId) : cartApi.updateItem(productId, qty)));
+  const addToCart = (productId, qty = 1, variantId) =>
+    cartAction(lineKey(productId, variantId), () => cartApi.addItem(productId, qty, variantId), t('Added to cart'));
 
-  const removeFromCart = (productId) =>
-    cartAction(productId, () => cartApi.removeItem(productId), t('Removed from cart'));
+  const setQty = (productId, qty, variantId) =>
+    cartAction(lineKey(productId, variantId), () =>
+      qty <= 0 ? cartApi.removeItem(productId, variantId) : cartApi.updateItem(productId, qty, variantId)
+    );
+
+  const removeFromCart = (productId, variantId) =>
+    cartAction(lineKey(productId, variantId), () => cartApi.removeItem(productId, variantId), t('Removed from cart'));
 
   const applyCoupon = (code) =>
     cartAction('coupon', () => cartApi.applyCoupon(code.trim().toUpperCase()), t('Coupon applied'));
@@ -124,7 +135,9 @@ export function ShopProvider({ children }) {
     cartCount,
     busyId,
     loadCart,
+    lineKey,
     qtyInCart,
+    qtyOfProduct,
     addToCart,
     setQty,
     removeFromCart,

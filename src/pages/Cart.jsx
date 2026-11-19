@@ -69,7 +69,7 @@ export default function Cart() {
   const { isLoggedIn } = useAuth();
   const { tr, t } = useLang();
   const navigate = useNavigate();
-  const { cart, settings, setQty, removeFromCart, busyId, applyCoupon, removeCoupon } = useShop();
+  const { cart, settings, setQty, removeFromCart, busyId, lineKey, applyCoupon, removeCoupon } = useShop();
   const [code, setCode] = useState('');
 
   if (!isLoggedIn) {
@@ -102,21 +102,31 @@ export default function Cart() {
       <div className="two-col">
         <div className="card cart-list">
           {cart.items.map((item) => (
-            <div key={item.productId} className="cart-item">
+            // One line per product + option, e.g. Aata 1 kg and Aata 5 kg are two lines
+            <div key={lineKey(item.productId, item.variantId)} className={`cart-item ${item.isAvailable === false ? 'is-unavailable' : ''}`}>
               <Link to={`/product/${item.slug}`} className="cart-item__img">
                 <ProductImage src={item.image} alt={tr(item.title)} />
               </Link>
               <div className="cart-item__info">
                 <Link to={`/product/${item.slug}`} className="cart-item__title">{tr(item.title)}</Link>
-                <span className="muted small">{item.unit}</span>
+                <span className="muted small">{item.variantLabel ? tr(item.variantLabel) : item.unit}</span>
+                {item.isAvailable === false && <span className="form-error small">{t('No longer available. Please remove it.')}</span>}
                 <div className="cart-item__price">
                   <strong>{money(item.lineTotal)}</strong>
                   {item.mrp > item.price && <s className="muted small">{money(item.mrp * item.qty)}</s>}
                 </div>
               </div>
               <div className="cart-item__actions">
-                <QtyStepper qty={item.qty} busy={busyId === item.productId} max={item.stock} onChange={(n) => setQty(item.productId, n)} size="sm" />
-                <button className="link-btn danger" onClick={() => removeFromCart(item.productId)} aria-label={t('Remove')}>
+                {item.isAvailable !== false && (
+                  <QtyStepper
+                    qty={item.qty}
+                    busy={busyId === lineKey(item.productId, item.variantId)}
+                    max={item.stock}
+                    onChange={(n) => setQty(item.productId, n, item.variantId)}
+                    size="sm"
+                  />
+                )}
+                <button className="link-btn danger" onClick={() => removeFromCart(item.productId, item.variantId)} aria-label={t('Remove')}>
                   <Trash2 size={16} /> {t('Remove')}
                 </button>
               </div>

@@ -217,3 +217,22 @@
 .rating-badge--1, .rating-badge--2 { background: var(--danger); }
 .rating-badge--3 { background: #c98a00; }
 .chip svg { vertical-align: -2px; }
+
+/* ---------- Options editor (product form) ---------- */
+.options-switch { padding: 12px 14px; background: var(--paper); border-radius: var(--r-md); display: grid; gap: 6px; }
+.variant-editor { display: grid; gap: 10px; }
+.variant-editor__scroll { overflow-x: auto; border: 1px solid var(--line); border-radius: var(--r-md); }
+.variant-table { min-width: 720px; }
+.variant-table th { padding: 8px; font-size: 0.75rem; }
+.variant-table td { padding: 6px; }
+.variant-table input:not([type="radio"]):not([type="checkbox"]) { width: 100%; min-width: 64px; height: 36px; padding: 0 8px; border: 1.5px solid var(--line); border-radius: var(--r-sm); font-size: 0.9rem; }
+.variant-table input:focus { border-color: var(--indigo); outline: none; }
+.variant-table input.is-error { border-color: var(--danger); background: var(--danger-soft); }
+.variant-table input[type="radio"], .variant-table input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--indigo); }
+.variant-table tr.is-off td { opacity: 0.55; }
+.drawer__panel { width: min(100%, 760px); }
+
+/* ---------- Review tabs + dashboard ---------- */
+.seg--tabs { flex-wrap: wrap; }
+.tiles--6 { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)) !important; }
+.tile--attention { border-color: var(--haldi); background: var(--haldi-soft); }

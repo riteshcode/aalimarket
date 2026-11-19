@@ -97,9 +97,9 @@ function TopProducts({ from, to }) {
           <thead><tr><th>#</th><th>Product</th><th>Qty sold</th><th>Revenue</th></tr></thead>
           <tbody>
             {rows.map((p, i) => (
-              <tr key={p.productId}>
+              <tr key={`${p.productId}-${p.variantId || ''}`}>
                 <td className="muted">{i + 1}</td>
-                <td>{tr(p.title)}</td>
+                <td>{tr(p.title)}{p.variantLabel && <span className="muted small"> {tr(p.variantLabel)}</span>}</td>
                 <td>{p.qtySold}</td>
                 <td>{money(p.revenue)}</td>
               </tr>

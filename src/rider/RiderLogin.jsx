@@ -4,6 +4,7 @@ import Logo from '../components/Logo';
 import OtpLogin from '../components/OtpLogin';
 import { useAuth } from '../context/AuthContext';
 import { useLang } from '../context/LangContext';
+import RiderInstall from './RiderInstall';
 
 export default function RiderLogin() {
   const { saveLogin, isRider } = useAuth();
@@ -30,6 +31,7 @@ export default function RiderLogin() {
         <p className="muted">{t('Log in with the mobile number the store registered for you.')}</p>
         <OtpLogin askName={false} onVerified={onVerified} />
         {error && <p className="form-error">{error}</p>}
+        <RiderInstall />
       </div>
     </div>
   );

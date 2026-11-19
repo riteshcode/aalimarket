@@ -10,6 +10,8 @@ import { useToast } from '../context/ToastContext';
 import { asList, money, toPaise, toRupees, formatDate } from '../lib/format';
 import { Spinner, ErrorState } from '../components/States';
 import { StatusPill } from '../pages/Orders';
+import RiderInstall from './RiderInstall';
+import RiderAlerts from './RiderAlerts';
 
 function mapsLink(addr) {
   if (addr.location) return `https://www.google.com/maps/dir/?api=1&destination=${addr.location.lat},${addr.location.lng}`;
@@ -141,7 +143,7 @@ function RiderOrder({ order, onChanged }) {
       </button>
       {showItems && (
         <ul className="rider-items">
-          {order.items.map((it, i) => <li key={i}><span>{tr(it.title)}</span><span className="muted">{it.unit} × {it.qty}</span></li>)}
+          {order.items.map((it, i) => <li key={i}><span>{tr(it.title)}</span><span className="muted">{it.variantLabel ? tr(it.variantLabel) : it.unit} × {it.qty}</span></li>)}
         </ul>
       )}
 
@@ -209,6 +211,8 @@ export default function RiderApp() {
       </div>
 
       <main className="rider__list">
+        <RiderInstall />
+        <RiderAlerts />
         {loading && !data && <Spinner />}
         {error && <ErrorState error={error} onRetry={reload} />}
 

@@ -58,6 +58,9 @@ const ERROR_MESSAGES = {
   ACCOUNT_DISABLED: 'This account has been turned off. Please contact the store.',
   FILE_TOO_LARGE: 'This image is too big. Use photos under 5 MB.',
   UPLOAD_FAILED: 'Image upload failed. Check the image storage settings on the server.',
+  VARIANT_REQUIRED: 'Please choose an option first.',
+  VARIANT_NOT_FOUND: 'This option isn’t available any more.',
+  REVIEW_ALREADY_EXISTS: 'You’ve already reviewed this product.',
   MOBILE_ALREADY_REGISTERED: 'This mobile number already has an account. Use a different number for the rider.',
 };
 

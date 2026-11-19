@@ -5,16 +5,108 @@ import { adminApi } from '../api/endpoints';
 import { useFetch } from '../lib/useFetch';
 import { useLang } from '../context/LangContext';
 import { useToast } from '../context/ToastContext';
-import { asList, getId, money, toPaise, toRupees, discountPercent } from '../lib/format';
+import { asList, getId, money, toPaise, toRupees, discountPercent, hasVariants } from '../lib/format';
+
+// "₹52 – ₹470" for a product with options
+function priceRange(p) {
+  const prices = p.variants.filter((v) => v.isActive).map((v) => v.price);
+  if (!prices.length) return money(p.price);
+  const min = Math.min(...prices);
+  const max = Math.max(...prices);
+  return min === max ? money(min) : `${money(min)} – ${money(max)}`;
+}
 import ProductImage from '../components/ProductImage';
 import { Spinner, ErrorState } from '../components/States';
 import { Drawer, BilingualInput, ImageUploader, Toggle, ConfirmButton } from './AdminUi';
 
 const slugify = (s) => s.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
 
+// One row of the options table. Money is typed in ₹ and sent as paise.
+const emptyVariant = (isDefault = false) => ({
+  id: undefined, labelEn: '', labelHi: '', sku: '', mrp: '', price: '', stock: '0', images: [], isDefault, isActive: true,
+});
+
+function variantToRow(v) {
+  return {
+    id: v.id,
+    labelEn: v.label?.en || '',
+    labelHi: v.label?.hi || '',
+    sku: v.sku || '',
+    mrp: toRupees(v.mrp),
+    price: toRupees(v.price),
+    stock: String(v.stock ?? 0),
+    images: v.images || [], // kept so saving doesn't wipe a variant's own photos
+    isDefault: Boolean(v.isDefault),
+    isActive: v.isActive !== false,
+  };
+}
+
+function rowToVariant(row) {
+  return {
+    ...(row.id ? { id: row.id } : {}),
+    label: { en: row.labelEn.trim(), hi: row.labelHi.trim() },
+    sku: row.sku.trim(),
+    mrp: toPaise(row.mrp),
+    price: toPaise(row.price),
+    stock: Number(row.stock),
+    images: row.images,
+    isDefault: row.isDefault,
+    isActive: row.isActive,
+  };
+}
+
+// Options table: Aata 1 kg / 5 kg / 10 kg, each with its own MRP, price and stock
+function VariantEditor({ rows, onChange }) {
+  const update = (index, key, value) => onChange(rows.map((r, i) => (i === index ? { ...r, [key]: value } : r)));
+  // Only one default: picking one clears the others
+  const makeDefault = (index) => onChange(rows.map((r, i) => ({ ...r, isDefault: i === index, isActive: i === index ? true : r.isActive })));
+  const remove = (index) => {
+    const next = rows.filter((_, i) => i !== index);
+    if (next.length && !next.some((r) => r.isDefault)) next[0] = { ...next[0], isDefault: true, isActive: true };
+    onChange(next);
+  };
+
+  return (
+    <div className="variant-editor">
+      <div className="variant-editor__scroll">
+        <table className="table variant-table">
+          <thead>
+            <tr><th>Option (EN)</th><th>Option (हिंदी)</th><th>MRP ₹</th><th>Price ₹</th><th>Stock</th><th>SKU</th><th title="Shown first">Default</th><th>On</th><th aria-label="Remove" /></tr>
+          </thead>
+          <tbody>
+            {rows.map((r, i) => {
+              const priceTooHigh = r.price !== '' && r.mrp !== '' && Number(r.price) > Number(r.mrp);
+              return (
+                <tr key={r.id || `new-${i}`} className={r.isActive ? '' : 'is-off'}>
+                  <td><input value={r.labelEn} onChange={(e) => update(i, 'labelEn', e.target.value)} placeholder="1 kg" required /></td>
+                  <td><input value={r.labelHi} onChange={(e) => update(i, 'labelHi', e.target.value)} placeholder="1 किलो" lang="hi" required /></td>
+                  <td><input type="number" min="0" step="0.01" value={r.mrp} onChange={(e) => update(i, 'mrp', e.target.value)} required /></td>
+                  <td><input type="number" min="0" step="0.01" value={r.price} onChange={(e) => update(i, 'price', e.target.value)} required className={priceTooHigh ? 'is-error' : ''} title={priceTooHigh ? 'Price is more than MRP' : ''} /></td>
+                  <td><input type="number" min="0" value={r.stock} onChange={(e) => update(i, 'stock', e.target.value)} required /></td>
+                  <td><input value={r.sku} onChange={(e) => update(i, 'sku', e.target.value)} placeholder="optional" /></td>
+                  <td className="center"><input type="radio" name="defaultVariant" checked={r.isDefault} onChange={() => makeDefault(i)} aria-label="Default option" /></td>
+                  <td className="center"><input type="checkbox" checked={r.isActive} disabled={r.isDefault} onChange={(e) => update(i, 'isActive', e.target.checked)} aria-label="Show this option" /></td>
+                  <td><button type="button" className="icon-btn icon-btn--sm danger" onClick={() => remove(i)} disabled={rows.length === 1} aria-label="Remove option"><Trash2 size={14} /></button></td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+      <div className="row-between">
+        <span className="muted small">The default option is shown first in the store. Unticked options are hidden from customers.</span>
+        <button type="button" className="btn btn--ghost btn--sm" onClick={() => onChange([...rows, emptyVariant(rows.length === 0)])} disabled={rows.length >= 20}>
+          <Plus size={16} /> Add option
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function ProductForm({ product, categories, onSaved, onCancel }) {
   const toast = useToast();
   const isEdit = Boolean(product);
+  const hadVariants = Boolean(product?.variants?.length);
   const [saving, setSaving] = useState(false);
 
   // Prices are shown in rupees in the form and sent to the API in paise
@@ -32,28 +124,49 @@ function ProductForm({ product, categories, onSaved, onCancel }) {
     tags: (product?.tags || []).join(', '),
     isActive: product?.isActive ?? true,
   });
+  // Options (variants)
+  const [useOptions, setUseOptions] = useState(hadVariants);
+  const [optionName, setOptionName] = useState(product?.optionName || { en: 'Pack size', hi: 'पैक साइज़' });
+  const [rows, setRows] = useState(hadVariants ? product.variants.map(variantToRow) : [emptyVariant(true)]);
 
   const set = (key, value) => setForm((f) => ({ ...f, [key]: value }));
 
   async function submit(e) {
     e.preventDefault();
-    if (Number(form.price) > Number(form.mrp)) return toast.error('Selling price can’t be more than MRP.');
+    if (useOptions) {
+      if (rows.some((r) => Number(r.price) > Number(r.mrp))) return toast.error('An option’s price can’t be more than its MRP.');
+      if (rows.filter((r) => r.isDefault).length !== 1) return toast.error('Pick one default option.');
+    } else if (Number(form.price) > Number(form.mrp)) {
+      return toast.error('Selling price can’t be more than MRP.');
+    }
+
     setSaving(true);
     const body = {
-      ...form,
-      slug: form.slug || slugify(form.title.en),
-      mrp: toPaise(form.mrp),
-      price: toPaise(form.price),
-      stock: Number(form.stock),
+      title: form.title,
+      description: form.description,
+      category: form.category,
+      brand: form.brand,
+      images: form.images,
       tags: form.tags.split(',').map((t) => t.trim()).filter(Boolean),
+      isActive: form.isActive,
     };
+    if (!isEdit) body.slug = form.slug || slugify(form.title.en); // slug can't change after create
+
+    if (useOptions) {
+      // price / mrp / unit / stock are worked out by the backend from the options
+      body.optionName = optionName;
+      body.variants = rows.map(rowToVariant);
+    } else {
+      body.mrp = toPaise(form.mrp);
+      body.price = toPaise(form.price);
+      body.unit = form.unit;
+      body.stock = Number(form.stock);
+      if (hadVariants) body.variants = []; // turned options off → plain product again
+    }
+
     try {
-      if (isEdit) {
-        delete body.slug; // update schema doesn't accept slug
-        await adminApi.updateProduct(getId(product), body);
-      } else {
-        await adminApi.createProduct(body);
-      }
+      if (isEdit) await adminApi.updateProduct(getId(product), body);
+      else await adminApi.createProduct(body);
       toast.success(isEdit ? 'Product updated' : 'Product created');
       onSaved();
     } catch (err) {
@@ -82,22 +195,41 @@ function ProductForm({ product, categories, onSaved, onCancel }) {
           {categories.map((c) => <option key={getId(c)} value={getId(c)}>{c.name?.en || c.name}</option>)}
         </select>
       </label>
-      <label className="field">
-        <span className="field__label">MRP (₹)</span>
-        <input type="number" min="0" step="0.01" value={form.mrp} onChange={(e) => set('mrp', e.target.value)} required />
-      </label>
-      <label className="field">
-        <span className="field__label">Selling price (₹) {off > 0 && <em>{off}% off</em>}</span>
-        <input type="number" min="0" step="0.01" value={form.price} onChange={(e) => set('price', e.target.value)} required />
-      </label>
-      <label className="field">
-        <span className="field__label">Pack size</span>
-        <input value={form.unit} onChange={(e) => set('unit', e.target.value)} placeholder="1 kg" required />
-      </label>
-      <label className="field">
-        <span className="field__label">Stock</span>
-        <input type="number" min="0" value={form.stock} onChange={(e) => set('stock', e.target.value)} required />
-      </label>
+
+      <div className="field--full options-switch">
+        <Toggle checked={useOptions} onChange={setUseOptions} label="This product comes in different options (sizes, weights…)" />
+        {hadVariants && !useOptions && <p className="form-error small">Saving will delete all options and make this a single product.</p>}
+      </div>
+
+      {useOptions ? (
+        <>
+          <BilingualInput label="What are the options called?" required value={optionName} onChange={setOptionName} />
+          <div className="field field--full">
+            <span className="field__label">Options</span>
+            <VariantEditor rows={rows} onChange={setRows} />
+          </div>
+        </>
+      ) : (
+        <>
+          <label className="field">
+            <span className="field__label">MRP (₹)</span>
+            <input type="number" min="0" step="0.01" value={form.mrp} onChange={(e) => set('mrp', e.target.value)} required />
+          </label>
+          <label className="field">
+            <span className="field__label">Selling price (₹) {off > 0 && <em>{off}% off</em>}</span>
+            <input type="number" min="0" step="0.01" value={form.price} onChange={(e) => set('price', e.target.value)} required />
+          </label>
+          <label className="field">
+            <span className="field__label">Pack size</span>
+            <input value={form.unit} onChange={(e) => set('unit', e.target.value)} placeholder="1 kg" required />
+          </label>
+          <label className="field">
+            <span className="field__label">Stock</span>
+            <input type="number" min="0" value={form.stock} onChange={(e) => set('stock', e.target.value)} required />
+          </label>
+        </>
+      )}
+
       <label className="field">
         <span className="field__label">Brand</span>
         <input value={form.brand} onChange={(e) => set('brand', e.target.value)} />
@@ -150,6 +282,7 @@ function ImportForm({ onDone }) {
       <p className="muted small">
         Tip: use <strong>Export CSV</strong> first, edit it in Excel, then import it back. Prices are in <strong>paise</strong>
         {' '}(₹249 = 24900). Rows with an <code>id</code> update that product; rows without one create a new product.
+        A product with options has one row per option (<code>variant_id</code>, <code>variant_label_en</code>…). Import never deletes options.
       </p>
       <input
         type="file"
@@ -345,7 +478,9 @@ export default function AdminProducts() {
                     </div>
                   </td>
                   <td>{catName(p.category)}</td>
-                  {quickEdit ? (
+                  {quickEdit && hasVariants(p) ? (
+                    <td colSpan={2} className="muted small">Has {p.variants.length} options. Edit them in the product form.</td>
+                  ) : quickEdit ? (
                     <>
                       <td>
                         <div className="quick-cells">
@@ -361,8 +496,17 @@ export default function AdminProducts() {
                   ) : (
                     <>
                       <td>
-                        <strong>{money(p.price)}</strong>
-                        {p.mrp > p.price && <s className="muted small"> {money(p.mrp)}</s>}
+                        {hasVariants(p) ? (
+                          <>
+                            <strong>{priceRange(p)}</strong>
+                            <span className="pill pill--placed">{p.variants.length} options</span>
+                          </>
+                        ) : (
+                          <>
+                            <strong>{money(p.price)}</strong>
+                            {p.mrp > p.price && <s className="muted small"> {money(p.mrp)}</s>}
+                          </>
+                        )}
                       </td>
                       <td>
                         <span className={p.stock <= 10 ? 'warn' : ''}>{p.stock}</span>
