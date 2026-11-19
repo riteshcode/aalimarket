@@ -7,6 +7,7 @@ import { useToast } from '../context/ToastContext';
 import { asList, getId } from '../lib/format';
 import AddressForm from '../components/AddressForm';
 import { usePush } from '../lib/usePush';
+import { useStoreInfo } from './legal/useStoreInfo';
 import { Spinner } from '../components/States';
 import { useLang } from '../context/LangContext';
 
@@ -210,6 +211,7 @@ function NotificationSetting() {
 export default function Account() {
   const { logout } = useAuth();
   const { t } = useLang();
+  const store = useStoreInfo();
   const navigate = useNavigate();
 
   async function onLogout() {
@@ -227,12 +229,15 @@ export default function Account() {
       <Addresses />
       <NotificationSetting />
       <nav className="card help-links" aria-label={t('Help and policies')}>
+        <Link to="/about">{t('About')}</Link>
         <Link to="/contact">{t('Contact us')}</Link>
         <Link to="/refund-policy">{t('Cancellation and Refunds')}</Link>
         <Link to="/privacy">{t('Privacy Policy')}</Link>
         <Link to="/terms">{t('Terms of Use')}</Link>
       </nav>
       <button className="btn btn--ghost btn--block" onClick={onLogout}><LogOut size={18} /> {t('Log out')}</button>
+      {/* Was in the footer; on phones the footer is hidden, so the licence line lives here */}
+      <p className="account-legal">© {new Date().getFullYear()} {store.name}. FSSAI Lic. No. {store.fssai}</p>
     </div>
   );
 }

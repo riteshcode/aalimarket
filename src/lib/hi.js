@@ -343,6 +343,7 @@ const HI = {
   'New delivery alerts': 'नई डिलीवरी के अलर्ट',
   'Get a notification when the store gives you an order.': 'दुकान से ऑर्डर मिलने पर नोटिफ़िकेशन पाएँ।',
   'Alerts on. You’ll hear about every new delivery.': 'अलर्ट चालू। हर नई डिलीवरी की सूचना मिलेगी।',
+  'Close search': 'खोज बंद करें',
 };
 
 export default HI;

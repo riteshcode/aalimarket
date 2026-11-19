@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
-import { Search, ShoppingBag, Heart, User } from 'lucide-react';
+import { Search, ShoppingBag, Heart, User, ArrowLeft } from 'lucide-react';
 import Logo from './Logo';
 import { useShop } from '../context/ShopContext';
 import { useLang } from '../context/LangContext';
@@ -31,26 +31,55 @@ export default function Header() {
     return () => clearTimeout(timer);
   }, [query]);
 
+  // Phones: search is a small icon; tapping it turns the header into a search bar
+  const [searching, setSearching] = useState(false);
+  const inputRef = useRef(null);
+
+  function openSearch() {
+    setSearching(true);
+    // focus after the bar is shown so the phone keyboard opens
+    setTimeout(() => inputRef.current?.focus(), 0);
+  }
+
+  function closeSearch() {
+    setSearching(false);
+    setOpen(false);
+  }
+
+  useEffect(() => {
+    if (!searching) return undefined;
+    const onKey = (e) => e.key === 'Escape' && closeSearch();
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [searching]);
+
   function onSearch(e) {
     e.preventDefault();
     setOpen(false);
+    setSearching(false);
+    inputRef.current?.blur();
     navigate(query.trim() ? `/products?q=${encodeURIComponent(query.trim())}` : '/products');
   }
 
   function openProduct(slug) {
     setOpen(false);
+    setSearching(false);
     setQuery('');
     navigate(`/product/${slug}`);
   }
 
   return (
-    <header className="header">
+    <header className={`header ${searching ? 'header--searching' : ''}`}>
       <div className="header__row container">
         <Logo />
 
         <form className="search" onSubmit={onSearch} role="search">
-          <Search size={18} aria-hidden="true" />
+          <button type="button" className="search__back" onClick={closeSearch} aria-label={t('Close search')}>
+            <ArrowLeft size={20} />
+          </button>
+          <Search size={18} aria-hidden="true" className="search__icon" />
           <input
+            ref={inputRef}
             type="search"
             placeholder={t('Search rice, atta, oil…')}
             value={query}
@@ -76,6 +105,9 @@ export default function Header() {
         </form>
 
         <div className="header__actions">
+          <button className="search-toggle" onClick={openSearch} aria-label={t('Search products')}>
+            <Search size={20} />
+          </button>
           <button
             className="lang-toggle"
             onClick={() => setLang(lang === 'en' ? 'hi' : 'en')}

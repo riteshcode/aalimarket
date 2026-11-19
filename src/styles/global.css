@@ -161,12 +161,30 @@ s { text-decoration-thickness: 1px; }
   display: grid; place-items: center; border: 2px solid var(--indigo);
 }
 
-/* Mobile header: logo + lang on row 1, search full width on row 2 */
+/* Search icon + back arrow only exist on phones */
+.search-toggle, .search__back { display: none; }
+
+/* Phones: one compact row — logo on the left, [search icon][EN/हिं] on the right.
+   Tapping the icon (header--searching) hides them and the search bar takes the whole row. */
 @media (max-width: 767px) {
-  .header__row { flex-wrap: wrap; gap: 10px; padding-top: 10px; padding-bottom: 12px; }
+  .header__row { min-height: 60px; gap: 10px; }
   .header__actions { margin-left: auto; }
-  .search { order: 3; flex-basis: 100%; }
+  .header .search { display: none; }
+  .search-toggle {
+    display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%;
+    border: 1.5px solid rgba(255, 255, 255, 0.35); background: transparent; color: #fff;
+  }
+  .search-toggle:active { background: rgba(255, 255, 255, 0.12); }
+
+  .header--searching .logo, .header--searching .header__actions { display: none; }
+  .header--searching .search { display: flex; flex: 1; animation: search-in 0.18s ease-out; }
+  .header--searching .search__back {
+    display: grid; place-items: center; width: 32px; height: 32px; margin-left: -6px;
+    border: 0; background: none; color: var(--ink); flex: none;
+  }
+  .header--searching .search__icon { display: none; }
 }
+@keyframes search-in { from { opacity: 0; transform: scaleX(0.92); } }
 @media (min-width: 768px) {
   .header__links, .cart-btn { display: inline-flex; }
 }
@@ -309,7 +327,7 @@ s { text-decoration-thickness: 1px; }
 }
 
 .banners { margin: 0 -16px; padding-top: 16px; }
-.banners__track { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; gap: 12px; padding: 0 16px; }
+.banners__track { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; gap: 12px; padding: 0 16px; scroll-padding-inline: 16px; }
 .banners__track::-webkit-scrollbar { display: none; }
 .banners__slide {
   position: relative; flex: 0 0 100%; scroll-snap-align: start;
@@ -331,18 +349,18 @@ s { text-decoration-thickness: 1px; }
 .shelf__row {
   display: grid; grid-auto-flow: column; grid-auto-columns: 31%;
   gap: 8px; overflow-x: auto; scroll-snap-type: x proximity; scrollbar-width: none;
-  margin: 0 -16px; padding: 0 16px 4px;
+  margin: 0 -16px; padding: 0 16px 4px; scroll-padding-inline: 16px;
 }
 .shelf__row::-webkit-scrollbar { display: none; }
 .shelf__row > * { scroll-snap-align: start; }
 @media (min-width: 640px) { .shelf__row { grid-auto-columns: 23%; gap: 10px; } }
-@media (min-width: 960px) { .shelf__row { grid-auto-columns: calc((100% - 60px) / 6); margin: 0; padding: 0 0 4px; gap: 12px; } }
+@media (min-width: 960px) { .shelf__row { grid-auto-columns: calc((100% - 60px) / 6); margin: 0; padding: 0 0 4px; gap: 12px; scroll-padding-inline: 0; } }
 
 .page--home > .shelf, .page--home > .banners { width: 100%; max-width: 1180px; margin-inline: auto; padding-inline: 16px; }
 .page--home > .banners { padding-inline: 0; }
 @media (min-width: 768px) { .page--home > .banners { padding-inline: 16px; } }
 .page--home > .banners .banners__track { padding-inline: 16px; }
-@media (min-width: 768px) { .page--home > .banners .banners__track { padding-inline: 0; } }
+@media (min-width: 768px) { .page--home > .banners .banners__track { padding-inline: 0; scroll-padding-inline: 0; } }
 
 /* Categories */
 .chip-row { display: flex; gap: 12px; overflow-x: auto; scrollbar-width: none; margin: 0 -16px; padding: 0 16px; }
@@ -806,3 +824,36 @@ body.has-order-bar .toast-stack { bottom: calc(var(--nav-h) + 86px + env(safe-ar
 .rider-alerts { display: flex; align-items: center; gap: 12px; }
 .rider-alerts > svg { color: var(--mint); flex: none; }
 .rider-alerts > div { flex: 1; display: flex; flex-direction: column; line-height: 1.3; }
+
+/* ---------- Footer only on wide screens; on phones its links live in Account / Login ---------- */
+@media (max-width: 767px) {
+  .footer { display: none; }
+}
+.account-legal { text-align: center; color: var(--muted); font-size: 0.78rem; margin-top: -4px; }
+.login-links { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 16px; margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--line); }
+.login-links a { color: var(--muted); font-size: 0.85rem; }
+.login-links a:hover { color: var(--indigo); }
+
+/* ---------- Listing filter bar ----------
+   Phones: row 1 = category chips (full width, scrolls sideways),
+           row 2 = Filters on the left, Sort on the right — same height and shape.
+   Wider screens: everything on one row. */
+.filters .chip-scroll { scroll-padding-inline: 16px; }
+.filters__end { justify-content: space-between; }
+.filters__end .chip,
+.filters .sort select { height: 36px; }
+.filters .sort select {
+  border-radius: 999px; border: 1.5px solid var(--line); background-color: var(--surface);
+  padding: 0 32px 0 14px; background-position: right 12px center; color: var(--ink);
+}
+.filters .chip.is-on svg { color: #fff; }
+
+@media (max-width: 767px) {
+  .filters { gap: 10px; }
+  .filters .chip-scroll { flex: 0 0 calc(100% + 32px); }
+  .filters__end { width: 100%; }
+}
+@media (min-width: 768px) {
+  .filters { flex-wrap: nowrap; }
+  .filters .chip-scroll { scroll-padding-inline: 0; }
+}
